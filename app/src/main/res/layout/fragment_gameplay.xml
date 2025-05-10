@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:clickable="true"
+    tools:context=".MainActivity">
+    <TableLayout
+        android:id="@+id/TitleTable"
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/GameTitle"
+            android:layout_width="400dp"
+            android:layout_height="match_parent"
+            android:text="GameTitle"
+            android:textAlignment="center"
+            android:textSize="20sp" />
+    </TableLayout>
+    <TableLayout
+        android:id="@+id/TopTable"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_marginTop="10dp"
+        android:padding="5dp"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/TitleTable">
+        <TextView
+            android:id="@+id/T1Name"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:textSize="25sp"
+            android:hint="Team1 Name" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            tools:ignore="UselessParent">
+
+            <TextView
+                android:id="@+id/Team1Score"
+                android:layout_width="135dp"
+                android:layout_height="160dp"
+                android:text="0"
+                android:clickable="true"
+                android:textAlignment="center"
+                android:textSize="80sp" />
+
+            <TableLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <TableRow
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <Button
+                        android:id="@+id/GS1Miss"
+                        android:layout_width="80dp"
+                        android:layout_height="55dp"
+                        android:layout_marginEnd="15dp"
+                        android:text="GS Miss" />
+
+                    <Button
+                        android:id="@+id/GS1"
+                        android:layout_width="110dp"
+                        android:layout_height="80dp"
+                        android:text="GS" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <Button
+                        android:id="@+id/GA1Miss"
+                        android:layout_width="80dp"
+                        android:layout_height="55dp"
+                        android:layout_marginEnd="15dp"
+                        android:text="GA Miss" />
+
+                    <Button
+                        android:id="@+id/GA1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="80dp"
+                        android:text="GA" />
+                </TableRow>
+
+            </TableLayout>
+
+
+        </TableRow>
+
+    </TableLayout>
+
+    <TableLayout
+        android:id="@+id/MiddleTable"
+        android:layout_width="match_parent"
+        android:layout_height="90dp"
+        android:padding="0dp"
+        app:layout_constraintTop_toBottomOf="@id/TopTable">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:padding="0dp">
+            <TextView
+                android:id="@+id/TimeRem"
+                android:layout_width="60dp"
+                android:layout_height="25dp"
+                android:text="00:00"
+                android:padding="0dp"
+                android:textAlignment="center"
+                android:textSize="18dp" />
+
+            <Button
+                android:id="@+id/Statistics"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="80dp"
+                android:layout_height="40dp"
+                android:text="Stats" />
+
+            <Button
+                android:id="@+id/Settings"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="80dp"
+                android:layout_height="40dp"
+                android:text="Setup" />
+
+            <Button
+                android:id="@+id/ResetGame"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="100dp"
+                android:layout_height="40dp"
+                android:text="ResetGame" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="80dp">
+
+            <TextView
+                android:id="@+id/QuarterNum"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:text="Quarter"
+                android:textAlignment="center"
+                android:textSize="15dp" />
+
+            <Button
+                android:id="@+id/PlayerVotes"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="112dp"
+                android:layout_height="50dp"
+                android:text="Best on Court"
+                android:textAlignment="center" />
+
+            <Button
+                android:id="@+id/PlayerList"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="89dp"
+                android:layout_height="40dp"
+                android:text="Players"
+                android:textAlignment="center" />
+
+            <Button
+                android:id="@+id/GameMode"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="89dp"
+                android:layout_height="40dp"
+                android:text="15m,4Q"
+                android:textAlignment="center" />
+        </TableRow>
+
+    </TableLayout>
+
+    <TableLayout
+        android:id="@+id/BottomTable"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        app:layout_constraintTop_toBottomOf="@id/MiddleTable">
+
+        <EditText
+            android:id="@+id/T2Name"
+            android:layout_width="89dp"
+            android:layout_height="50dp"
+            android:hint="Team2 Name" />
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:ignore="UselessParent">
+
+            <TextView
+                android:id="@+id/Team2Score"
+                android:layout_width="135dp"
+                android:layout_height="match_parent"
+                android:text="0"
+                android:clickable="true"
+                android:textAlignment="center"
+                android:textSize="80sp" />
+
+            <TableLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <TableRow
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <Button
+                        android:id="@+id/GS2Miss"
+                        android:layout_width="80dp"
+                        android:layout_height="55dp"
+                        android:layout_marginEnd="15dp"
+                        android:text="GS Miss" />
+
+                    <Button
+                        android:id="@+id/GS2"
+                        android:layout_width="110dp"
+                        android:layout_height="80dp"
+                        android:text="GS" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <Button
+                        android:id="@+id/GA2Miss"
+                        android:layout_width="80dp"
+                        android:layout_height="55dp"
+                        android:layout_marginEnd="15dp"
+                        android:text="GA Miss" />
+
+                    <Button
+                        android:id="@+id/GA2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="80dp"
+                        android:text="GA" />
+                </TableRow>
+            </TableLayout>
+        </TableRow>
+    </TableLayout>
+
+    <Button
+        android:id="@+id/btnStartGame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/BottomTable"
+        app:layout_constraintVertical_bias="0.145" />
+
+    <Button
+        android:id="@+id/UndoButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Undo"
+        app:layout_constraintBottom_toBottomOf="@+id/btnStartGame"
+        app:layout_constraintEnd_toStartOf="@+id/btnStartGame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/btnStartGame" />
+
+    <Button
+        android:id="@+id/bSubPlayer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sub"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.78"
+        app:layout_constraintStart_toEndOf="@+id/btnStartGame"
+        app:layout_constraintTop_toTopOf="@+id/btnStartGame"
+        app:layout_constraintVertical_bias="0.0" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
