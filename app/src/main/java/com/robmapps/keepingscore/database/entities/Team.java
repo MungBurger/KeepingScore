@@ -3,25 +3,62 @@ package com.robmapps.keepingscore.database.entities;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.ColumnInfo;
-
-import com.robmapps.keepingscore.Player;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.robmapps.keepingscore.Player;
 
 @Entity(tableName = "teams")
 public class Team {
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    private int id;
 
     @ColumnInfo(name = "teamName")
-    public String teamName;
+    private String teamName;
 
     @ColumnInfo(name = "score")
-    public int score;
+    private int score;
 
     @ColumnInfo(name = "players")
-    public List<Player> players;
+    private List<Player> players;
+
+    // Parameterized constructor to create a new Team with a given team name
+    public Team(String teamName) {
+        this.teamName = teamName;
+        this.score = 0;
+        // Initialize players here to avoid null issues
+        this.players = new ArrayList<>();
+    }
+
+    // --- Getters ---
+    public int getId() {
+        return id;
+    }
+    public String getTeamName() {
+        return teamName;
+    }
+    public int getScore() {
+        return score;
+    }
+    public List<Player> getPlayers() {
+        // Return a copy if you want to prevent external modification
+        // return new ArrayList<>(players);
+        return players;
+    }
+
+    // --- Setters ---
+    public void setId(int id) {
+        this.id = id;
+    }
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+    public void setScore(int score) {
+        this.score = score;
+    }
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+    }
 
     @Override
     public boolean equals(Object obj) {
@@ -32,19 +69,29 @@ public class Team {
                 teamName.equals(team.teamName) && // Compare names
                 score == team.score; // Compare scores
     }
-
-    // Default constructor (required by Room)
-    public Team() {
+    // Optional: Add hashCode() if you override equals()
+    // This is good practice, especially if you put Team objects in collections like HashSets or HashMaps.
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + teamName.hashCode();
+        result = 31 * result + score;
+        // Consider including players in hashCode calculation
+        // result = 31 * result + (players != null ? players.hashCode() : 0);
+        return result;
     }
 
-    // Parameterized constructor to create a new Team with a given team name
-    public Team(String teamName) {
-        this.teamName = teamName;
-        this.score = 0;
-        this.players = new ArrayList<>();
+    // Optional: Override toString() for easier logging/debugging
+    @Override
+    public String toString() {
+        return "Team{" +
+                "id=" + id +
+                ", teamName='" + teamName + '\'' +
+                ", players=" + players +
+                ", score=" + score +
+                '}';
     }
 
-    // Getters and setters can be added here if needed.
 }
 //    TODO I've analyzed Team.java. It correctly defines a Room entity for storing team data, including an auto-generated
 //     primary key (id), team name, score, and list of players. The use of equals() ensures proper object comparisons,

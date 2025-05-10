@@ -6,10 +6,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
-//import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.AndroidViewModel; // Change ViewModel to AndroidViewModel
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModelProvider;
 import android.content.SharedPreferences;
 import com.robmapps.keepingscore.database.AppDatabase;
 import com.robmapps.keepingscore.database.entities.GameStats;
@@ -117,12 +115,12 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     }
 
     public void insertTeam(Team team) {
-        Log.d("DatabaseDebug1", "Inserting team: " + team.teamName + ", Players count: " + (team.players != null ? team.players.size() : 0));
+        Log.d("DatabaseDebug1", "Inserting team: " + team.getTeamName() + ", Players count: " + (team.getPlayers() != null ? team.getPlayers().size() : 0));
         Executors.newSingleThreadExecutor().execute(() -> teamDao.insertTeam(team));
     }
 
     public void updateTeam(Team team) {
-        Log.d("DatabaseDebug2", "Updating team: " + team.teamName + ", Players count: " + (team.players != null ? team.players.size() : 0));
+        Log.d("DatabaseDebug2", "Updating team: " + team.getTeamName() + ", Players count: " + (team.getPlayers() != null ? team.getPlayers().size() : 0));
         Executors.newSingleThreadExecutor().execute(() -> teamDao.updateTeam(team));
     }
     public LiveData<String> getCurrentCentrePass() {
