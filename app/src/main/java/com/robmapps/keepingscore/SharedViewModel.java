@@ -4,11 +4,16 @@ import android.app.Application;
 import android.graphics.Color;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MediatorLiveData;
+//import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import android.content.SharedPreferences;
+
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.SavedStateHandle;
+import androidx.lifecycle.Transformations;
 import com.robmapps.keepingscore.database.AppDatabase;
 import com.robmapps.keepingscore.database.entities.GameStats;
 import com.robmapps.keepingscore.database.entities.Team;
@@ -33,52 +38,70 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     private final AppDatabase database;
     private final TeamDAO teamDao;
     private final MutableLiveData<List<ScoringAttempt>> allActions = new MutableLiveData<>(new ArrayList<>());
-    private SharedPreferences sharedPreferences;
     private final LiveData<List<Team>> teamsLive;     // LiveData for the list of all teams (observed by the spinner)
+
+    private static final String PREFS_NAME = "GamePreferences";
+    private static final String KEY_TEAM_1_NAME = "team1_name";
+    private static final String KEY_TEAM_2_NAME = "team2_name";
+
+    private SharedPreferences sharedPreferences;
     private final MutableLiveData<String> activeTeamName = new MutableLiveData<>(); // LiveData for the name of the active team (driven by spinner selection)
-    private final MediatorLiveData<Team> activeTeam = new MediatorLiveData<>();    // MediatorLiveData to observe activeTeamName and load the Team from the database
-
-    // Constructor that accepts Application
-    public SharedViewModel(@NonNull Application application) {
-        super(application); // Pass the application to the super constructor
-        database = AppDatabase.getDatabase(application);
-        teamDao = database.teamDao();
-
-        activeTeam.addSource(activeTeamName, name -> {
-            if (name != null && !name.isEmpty()) {
-                // Use switchMap equivalent with addSource to observe the database query result
-                // Remove previous source to avoid observing multiple teams
-                activeTeam.removeSource(teamDao.getTeamByName(name)); // Remove previous source if any
-                activeTeam.addSource(teamDao.getTeamByName(name), team -> {
-                    activeTeam.setValue(team);
-                });
-            } else {
-                activeTeam.setValue(null); // No active team
-            }
-            // Initialize other LiveData here if they depend on application context or are not lazy
-            // private final MutableLiveData<String> gameTimer = new MutableLiveData<>("00:00");
-            // private final MutableLiveData<Integer> currentQuarter = new MutableLiveData<>(1);
-            // private final MutableLiveData<String> currentCentrePass = new MutableLiveData<>("Team1");
-            // private final MutableLiveData<Integer> team1ScoreColor = new MutableLiveData<>(Color.rgb(51, 232, 20)); // Default color for Team 1
-            // private final MutableLiveData<Integer> team2ScoreColor = new MutableLiveData<>(Color.rgb(0, 0, 0)); // Default color for Team 2
-            // If these don't need application context, they can remain as they are.
-            // If they need context for shared preferences or resources, initialize them here.
-        });
-        // Initialize the LiveData for the list of all teams
-        teamsLive = teamDao.getAllTeams();
-    };
-
+    private final MutableLiveData<Team> _activeTeam = new MutableLiveData<>();
+    private final SavedStateHandle savedStateHandle; // Declare SavedStateHandle
     public LiveData<String> getActiveTeamName() {
         return activeTeamName;
     }
+    //private final MediatorLiveData<Team> activeTeam = new MediatorLiveData<>();    // MediatorLiveData to observe activeTeamName and load the Team from the database
 
-    public void setActiveTeamName(String name) {
-        activeTeamName.setValue(name);
-    }
+    // Key for saving and restoring Team 2 name
+    private static final String TEAM_2_NAME_KEY = "team2Name";
+    // LiveData for Team 2 name (derived from SavedStateHandle)
+    private LiveData<String> team2Name; // Use LiveData, not MutableLiveData
 
-    // Expose the LiveData for the active team
+    // Existing LiveData for active team
     public LiveData<Team> getActiveTeam() {
-        return activeTeam;
+        return _activeTeam;
+    }
+    // Constructor that accepts Application
+    public SharedViewModel(@NonNull Application application, SavedStateHandle savedStateHandle) {
+        super(application); // Pass the application to the super constructor
+        this.savedStateHandle = savedStateHandle;
+        this.database = AppDatabase.getDatabase(application);
+        teamDao = database.teamDao();
+        teamsLive = teamDao.getAllTeams();
+        _activeTeam.observeForever(activeTeam -> {
+            Log.d("GameVMActiveTeam", "Active team changed in ViewModel: " + (activeTeam != null ? activeTeam.getTeamName() : "null"));
+        });
+        team2Name = savedStateHandle.getLiveData(TEAM_2_NAME_KEY, "");
+    };
+    // Method to update Team 2 name in SavedStateHandle
+    public void setTeam2Name(String name) {
+        Log.d("SharedViewModel", "Setting Team 2 name in SavedStateHandle: " + name);
+        savedStateHandle.set(TEAM_2_NAME_KEY, name);
+    }
+    // Method to expose Team 2 name LiveData
+    public LiveData<String> getTeam2Name() {
+        return team2Name;
+    }
+    public void setActiveTeamName(String name) {
+        // When activeTeamName is set externally, fetch and set _activeTeam
+        if (name != null && !name.isEmpty()) {
+            // Use the DAO to get the LiveData for the team by name
+            LiveData<Team> teamLiveData = teamDao.getTeamByNameLive(name);
+            // Observe this LiveData temporarily to get the value and set _activeTeam
+            teamLiveData.observeForever(new Observer<Team>() {
+                @Override
+                public void onChanged(Team team) {
+                    _activeTeam.setValue(team); // Update the internal active team
+                    // Remove the observer immediately after getting the value
+                    teamLiveData.removeObserver(this);
+                }
+            });
+        } else {
+            _activeTeam.setValue(null); // No active team
+        }
+        // Consider if you still need to set activeTeamName itself here or if _activeTeam is sufficient
+        activeTeamName.setValue(name);
     }
 
     public LiveData<List<Team>> getTeamsLive() {
@@ -110,25 +133,70 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         return teams;
     }
 
+    // Method to set the active team (existing logic)
     public void setActiveTeam(Team team) {
-        activeTeam.postValue(team);
+        Log.d("SharedViewModel", "Setting active team: " + (team != null ? team.getTeamName() : "null"));
+        _activeTeam.setValue(team);
+        // Optional: Save the active team ID in SavedStateHandle if you need to restore it later
+        savedStateHandle.set("activeTeamId", team != null ? team.getId() : -1L);
     }
 
     public void insertTeam(Team team) {
-        Log.d("DatabaseDebug1", "Inserting team: " + team.getTeamName() + ", Players count: " + (team.getPlayers() != null ? team.getPlayers().size() : 0));
-        Executors.newSingleThreadExecutor().execute(() -> teamDao.insertTeam(team));
+        Executors.newSingleThreadExecutor().execute(() -> {
+            Log.d("DatabaseDebug1", "Inserting team: " + team.getTeamName() + ", Players count: " + (team.getPlayers() != null ? team.getPlayers().size() : 0));
+            long insertedId = teamDao.insertTeam(team); // Insert and get the generated ID
+
+            // After insertion, fetch the team by its generated ID.
+            // Use the LiveData method from the DAO.
+            LiveData<Team> insertedTeamLiveData = teamDao.getTeamById((int) insertedId);
+
+            // Now, switch to the main thread to observe the LiveData and update _activeTeam
+            // Use ContextCompat.getMainExecutor() for a modern approach
+            ContextCompat.getMainExecutor(getApplication()).execute(() -> {
+                // Observe the LiveData for the newly inserted team ONCE on the main thread.
+                insertedTeamLiveData.observeForever(new Observer<Team>() {
+                    @Override
+                    public void onChanged(Team insertedTeam) {
+                        // This onChanged will be called on the main thread when the data is available
+                        if (insertedTeam != null) {
+                            // Set the newly fetched Team object to the main thread's _activeTeam
+                            // Use setValue() now because we are on the main thread
+                            _activeTeam.setValue(insertedTeam);
+                            Log.d("DatabaseDebug1", "Successfully inserted team and set active team to: " + insertedTeam.getTeamName() + " (ID: " + insertedTeam.getId() + ")");
+                        } else {
+                            Log.e("DatabaseDebug1", "Fetched inserted team is null for ID: " + insertedId);
+                            // Handle the case where fetching the inserted team fails
+                            _activeTeam.setValue(null); // Clear active team (use setValue on main thread)
+                        }
+                        // Remove this temporary observer immediately after getting the data
+                        insertedTeamLiveData.removeObserver(this);
+                    }
+                });
+            });
+
+            // No need to set activeTeamName here anymore. _activeTeam is being set
+            // within the observer above after the data is fetched.
+            // activeTeamName.postValue(team.getTeamName()); // Remove or comment out this line
+        });
     }
 
     public void updateTeam(Team team) {
         Log.d("DatabaseDebug2", "Updating team: " + team.getTeamName() + ", Players count: " + (team.getPlayers() != null ? team.getPlayers().size() : 0));
-        Executors.newSingleThreadExecutor().execute(() -> teamDao.updateTeam(team));
+        Executors.newSingleThreadExecutor().execute(() -> {
+            teamDao.updateTeam(team);
+            // If the updated team is the active one, the UI observer will react
+            // to the LiveData update from Room.
+            Log.d("DatabaseDebug2", "Update team operation complete for: " + team.getTeamName());
+        });
     }
     public LiveData<String> getCurrentCentrePass() {
         return currentCentrePass;
     }
 
-    public void setCurrentCentrePass(String teamName) {
-        currentCentrePass.setValue(teamName);
+    // Method to update centre pass (existing logic)
+    public void setCurrentCentrePass(String centrePass) {
+        Log.d("SharedViewModel", "Setting centre pass: " + centrePass);
+        currentCentrePass.setValue(centrePass);
     }
 
     public LiveData<Integer> getTeam1ScoreColor() {
@@ -189,7 +257,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public ArrayList<Player> getPlayersForActiveTeam() {
         String activeName = activeTeamName.getValue();
         if (activeName != null && teams.getValue() != null) {
-            Log.d("DatabaseDebug", "Retrieving players for team: " + (activeTeam != null ? activeName : "null"));
+            Log.d("DatabaseDebug", "Retrieving players for team: " + (_activeTeam != null ? activeName : "null"));
 
             HashMap<String, ArrayList<Player>> currentTeams = teams.getValue();
             if (currentTeams.containsKey(activeName)) {

@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         return sharedViewModel;
     }
 
-    /*@Override
+    /*@Override   //Uncomment this if you want the exit warning
     public void onBackPressed() {
         // Check if the back stack is empty
         if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
@@ -127,7 +127,6 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
             super.onBackPressed(); // Navigate back
         }
     }
-
     private void showExitConfirmationDialog() {
         new AlertDialog.Builder(this)
                 .setTitle("Exit App?")

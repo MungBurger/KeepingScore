@@ -9,7 +9,10 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,15 +21,12 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.IntentFilter;
-
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import com.robmapps.keepingscore.database.AppDatabase;
 import com.robmapps.keepingscore.database.entities.GameStats;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -60,6 +60,7 @@ public class Frag_Gameplay extends Fragment {
         tvScore2 = view.findViewById(R.id.Team2Score);
         tvGameTitle=view.findViewById(R.id.GameTitle);
         tvTeam1=view.findViewById(R.id.T1Name);
+        tvTeam1.setEnabled(true);
         etTeam2 = view.findViewById(R.id.T2Name); // Initialize EditText for Team 2
 
         btnGS1=view.findViewById(R.id.GS1);btnGA1=view.findViewById(R.id.GA1);btnGS1M=view.findViewById(R.id.GS1Miss);btnGA1M=view.findViewById(R.id.GA1Miss);
@@ -73,14 +74,47 @@ public class Frag_Gameplay extends Fragment {
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
 
         // Observe Active Team Name
-        viewModel.getActiveTeamName().observe(getViewLifecycleOwner(), teamName -> {
-            if (teamName != null) {
-                tvTeam1.setText(teamName); // Set the TextView to display the active team name
+        viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
+            Log.d("GameplayActiveTeamObs", "Observer triggered."); // Log when observer is triggered
+
+            if (activeTeam != null) {
+                Log.d("GameplayActiveTeamObs", "Active team is NOT null.");
+                if (activeTeam.getTeamName() != null) {
+                    tvTeam1.setText(activeTeam.getTeamName());
+                    tvTeam1.setTextColor(Color.BLUE); // Set a strong color
+                    tvTeam1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30); // Make the text large
+                    Log.d("GameplayActiveTeamObs", "Active team name is: " + activeTeam.getTeamName());
+
+                    tvTeam1.requestLayout(); // Request layout pass
+                    tvTeam1.invalidate();    // Request redraw pass
+                    updateGameTitle();
+
+                    Log.d("GameplayActiveTeamObs", "Requested layout and invalidate for tvTeam1.");
+                } else {
+                    Log.d("GameplayActiveTeamObs", "Active team name IS null.");
+                    tvTeam1.setText(""); // Clear if name is null
+                    updateGameTitle();
+                }
+            } else {
+                Log.d("GameplayActiveTeamObs", "Active team IS null.");
+                // If no active team, set text to empty (or your default)
+                tvTeam1.setText(""); // Assuming you want to clear the text if no active team
+                updateGameTitle();
             }
+
         });
 
-        TextView gameTimer = view.findViewById(R.id.TimeRem);
-        TextView quarterNum = view.findViewById(R.id.QuarterNum);
+        // --- ADD THIS NEW OBSERVATION FOR TEAM 2 NAME ---
+        // Observe Team 2 name from the ViewModel's SavedStateHandle
+        viewModel.getTeam2Name().observe(getViewLifecycleOwner(), team2Name -> {
+            Log.d("GameplayTeam2Observer", "Team 2 name observed: " + team2Name);
+            // Only update the EditText if the current text is different
+            // This prevents an infinite loop caused by the TextWatcher
+            if (!etTeam2.getText().toString().equals(team2Name)) {
+                etTeam2.setText(team2Name); // Set the EditText text
+                // Note: updateGameTitle() will be called by the TextWatcher after setText()
+            }
+        });
 
         // Observe LiveData
         viewModel.getTeam1Score().observe(getViewLifecycleOwner(), score -> {
@@ -89,12 +123,13 @@ public class Frag_Gameplay extends Fragment {
         viewModel.getTeam2Score().observe(getViewLifecycleOwner(), score -> {
             tvScore2.setText(String.valueOf(score));
         });
-        viewModel.getGameTimer().observe(getViewLifecycleOwner(), time -> {
+/*        viewModel.getGameTimer().observe(getViewLifecycleOwner(), time -> {
             gameTimer.setText(time);
         });
         viewModel.getCurrentQuarter().observe(getViewLifecycleOwner(), quarter -> {
             quarterNum.setText("Quarter: " + quarter);
         });
+*/
 
         // Set listeners for Team 1 buttons
         btnGS1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", true);        });
@@ -141,6 +176,24 @@ public class Frag_Gameplay extends Fragment {
         } else {
             Log.e("Frag_Gameplay", "Context is null, BroadcastReceiver not registered");
         }
+        etTeam2.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                // No action needed here
+            }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // No action needed here
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                // When Team 2 name is changed, update the game title
+                updateGameTitle();
+                viewModel.setTeam2Name(s.toString());
+            }
+        });
+        updateGameTitle();
         return view;
     }
 
@@ -452,7 +505,26 @@ public class Frag_Gameplay extends Fragment {
             e.printStackTrace();
         }
     }
+    private View.OnClickListener updateGameTitle() {
+        String team1Name = tvTeam1.getText().toString();
+        String team2Name = etTeam2.getText().toString();
 
+        // Check if both names are available before setting the title
+        if (!team1Name.isEmpty() && !team2Name.isEmpty()) {
+            String gameTitle = team1Name + " vs " + team2Name;
+            tvGameTitle.setText(gameTitle);
+        } else if (!team1Name.isEmpty()) {
+            // If only Team 1 name is available, show just Team 1 name
+            tvGameTitle.setText(team1Name);
+        } else if (!team2Name.isEmpty()) {
+            // If only Team 2 name is available, show just Team 2 name
+            tvGameTitle.setText(team2Name);
+        } else {
+            // If neither name is available, set a default or clear the text
+            tvGameTitle.setText("Game Title"); // Or set to ""
+        }
+        return null;
+    }
 /*
     // Usage example
     String fileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date())
@@ -464,7 +536,6 @@ public void onDestroyView() {
     super.onDestroyView();
     requireContext().unregisterReceiver(timerReceiver);
 }
-
     private String formatTime(long timeInMillis) {
         long seconds = (timeInMillis / 1000) % 60;
         long minutes = (timeInMillis / (1000 * 60)) % 60;

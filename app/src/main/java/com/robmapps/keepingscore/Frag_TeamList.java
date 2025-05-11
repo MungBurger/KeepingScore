@@ -179,48 +179,26 @@ public class Frag_TeamList extends Fragment {
             Log.d("SaveTeamDebug", "Saving existing team: " + teamName + " with ID: " + currentActiveTeam.getId());
             // Update the properties of the existing Team object
             currentActiveTeam.setTeamName(teamName);
-            // Make a copy of playerNames to avoid potential issues with LiveData observers
             currentActiveTeam.setPlayers(new ArrayList<>(playerNames));
 
-            // Call the ViewModel's update method.
-            // The ViewModel will handle executing this on a background thread.
             viewModel.updateTeam(currentActiveTeam);
             Log.d("SaveTeamDebug", "Requested update for existing team: " + teamName);
 
-            // The UI (spinner, team name, players) should update automatically
-            // because the updateTeam method in ViewModel will cause the
-            // teamsLive LiveData to be updated by Room, and the activeTeam
-            // observer will fetch the updated team if it's still the active one.
             Toast.makeText(getContext(), "Team updated!", Toast.LENGTH_SHORT).show();
 
         } else {
             // Case 2: We are saving a NEW team (activeTeam is null or has a zero ID)
             Log.d("SaveTeamDebug", "Saving new team: " + teamName);
             Team newTeam = new Team(teamName); // Create a new Team object
-            // Make a copy of playerNames
             newTeam.setPlayers(new ArrayList<>(playerNames));
             newTeam.setScore(0); // Assuming a default score for a new team
 
-            // Call the ViewModel's insert method.
-            // The ViewModel will handle executing this on a background thread.
             viewModel.insertTeam(newTeam);
             Log.d("SaveTeamDebug", "Requested insert for new team: " + teamName);
-
-            // After inserting a new team, set its name as the active team name in the ViewModel.
-            // This will trigger the activeTeam observer in the ViewModel to fetch the
-            // newly inserted team (which now has a generated ID) and update the
-            // activeTeam LiveData, which in turn updates the UI.
-            viewModel.setActiveTeamName(teamName);
+            //viewModel.setActiveTeamName(teamName);
             Toast.makeText(getContext(), "New team saved!", Toast.LENGTH_SHORT).show();
         }
-
         hasUnsavedChanges = false; // Reset the unsaved changes flag
-
-        // UI updates like updating the spinner and the player list should
-        // be handled by observing viewModel.getTeamsLive() and
-        // viewModel.getActiveTeam() respectively.
-        // You likely don't need explicit calls like updateSpinner() here
-        // if your observers are set up correctly.
     }
     private void deleteCurrentTeam() {
         String teamName = etTeamName.getText().toString().trim();
@@ -367,7 +345,7 @@ public class Frag_TeamList extends Fragment {
                 }
             } else {
                 spTeamList.setAdapter(null); // Clear the dropdown if no teams exist
-                Toast.makeText(requireContext(), "No teams available", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(requireContext(), "No teams available", Toast.LENGTH_SHORT).show();
             }
         });
 
