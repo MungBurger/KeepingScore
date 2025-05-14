@@ -1,5 +1,6 @@
 package com.robmapps.keepingscore;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,13 +15,18 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.IntentFilter;
+
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
@@ -51,6 +57,9 @@ public class Frag_Gameplay extends Fragment {
     @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_gameplay, container, false);
+        ConstraintLayout constraintLayout = view.findViewById(R.id.gameplay_root_layout);
+
+        setupUI(constraintLayout);
         sAllActions = new StringBuilder(0);
         // Access the ViewModel
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -172,7 +181,6 @@ public class Frag_Gameplay extends Fragment {
             filter.addAction("GAME_TIMER_UPDATE");
             filter.addAction("END_OF_PERIOD_ACTION");
             context.registerReceiver(timerReceiver, filter);
-            Log.d("Frag_Gameplay", "BroadcastReceiver registered");
         } else {
             Log.e("Frag_Gameplay", "Context is null, BroadcastReceiver not registered");
         }
@@ -190,7 +198,7 @@ public class Frag_Gameplay extends Fragment {
             public void afterTextChanged(Editable s) {
                 // When Team 2 name is changed, update the game title
                 updateGameTitle();
-                viewModel.setTeam2Name(s.toString());
+                viewModel.saveTeam2Name(s.toString());
             }
         });
         updateGameTitle();
@@ -287,6 +295,7 @@ public class Frag_Gameplay extends Fragment {
         }
     }
     public void GameMode(View view){
+
         bDebugMode=false;
         if (sCurrMode == null) {
             sCurrMode = "10m,2H"; // Fallback to a default value if null
@@ -524,6 +533,45 @@ public class Frag_Gameplay extends Fragment {
             tvGameTitle.setText("Game Title"); // Or set to ""
         }
         return null;
+    }
+    private void setupUI(View view) {
+        // Set up touch listener for non-text views to hide keyboard and clear focus.
+        if (!(view instanceof EditText)) { // Check if the current view is NOT an EditText
+            view.setOnTouchListener(new View.OnTouchListener() {
+                public boolean onTouch(View v, MotionEvent event) {
+                    hideSoftKeyboard(); // Call the method to hide the keyboard
+                    clearFocusFromEditTexts(); // Call the method to clear focus
+                    return false; // Allow the touch event to continue to underlying views
+                }
+            });
+        }
+
+        // If a layout container, iterate through children and recursively call this method
+        if (view instanceof ViewGroup) {
+            for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+                View innerView = ((ViewGroup) view).getChildAt(i);
+                setupUI(innerView); // Recursively call setupUI for child views
+            }
+        }
+    }
+    private void hideSoftKeyboard() {
+        Activity activity = requireActivity();
+        InputMethodManager inputMethodManager = (InputMethodManager) activity.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        // Find the currently focused view, so we can grab a binder from it
+        View focusedView = activity.getCurrentFocus();
+        // If no view currently has focus, create a new one, just so we can get a binder from it
+        if (focusedView == null) {
+            focusedView = new View(activity);
+        }
+        inputMethodManager.hideSoftInputFromWindow(focusedView.getWindowToken(), 0); // Hide the keyboard
+    }
+
+    private void clearFocusFromEditTexts() {
+        Activity activity = requireActivity();
+        View focusedView = activity.getCurrentFocus();
+        if (focusedView instanceof EditText) {
+            focusedView.clearFocus(); // Clear focus from the focused EditText
+        }
     }
 /*
     // Usage example

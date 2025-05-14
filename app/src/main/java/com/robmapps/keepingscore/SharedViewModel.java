@@ -6,7 +6,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LiveData;
-//import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 import android.content.SharedPreferences;
@@ -28,8 +27,8 @@ import java.util.concurrent.Executors;
 
 public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewModel
     private final MutableLiveData<HashMap<String, ArrayList<Player>>> teams = new MutableLiveData<>(new HashMap<>());
-    private final MutableLiveData<Integer> team1Score = new MutableLiveData<>(0);
-    private final MutableLiveData<Integer> team2Score = new MutableLiveData<>(0);
+/*    private final MutableLiveData<Integer> team1Score = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer> team2Score = new MutableLiveData<>(0);*/
     private final MutableLiveData<String> gameTimer = new MutableLiveData<>("00:00");
     private final MutableLiveData<Integer> currentQuarter = new MutableLiveData<>(1);
     private final MutableLiveData<String> currentCentrePass = new MutableLiveData<>("Team1");
@@ -43,20 +42,29 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     private static final String PREFS_NAME = "GamePreferences";
     private static final String KEY_TEAM_1_NAME = "team1_name";
     private static final String KEY_TEAM_2_NAME = "team2_name";
-
-    private SharedPreferences sharedPreferences;
     private final MutableLiveData<String> activeTeamName = new MutableLiveData<>(); // LiveData for the name of the active team (driven by spinner selection)
     private final MutableLiveData<Team> _activeTeam = new MutableLiveData<>();
+    private final SharedPreferences sharedPreferences;
     private final SavedStateHandle savedStateHandle; // Declare SavedStateHandle
     public LiveData<String> getActiveTeamName() {
         return activeTeamName;
     }
-    //private final MediatorLiveData<Team> activeTeam = new MediatorLiveData<>();    // MediatorLiveData to observe activeTeamName and load the Team from the database
 
-    // Key for saving and restoring Team 2 name
-    private static final String TEAM_2_NAME_KEY = "team2Name";
-    // LiveData for Team 2 name (derived from SavedStateHandle)
-    private LiveData<String> team2Name; // Use LiveData, not MutableLiveData
+    // MutableLiveData for team names (we will update these from SharedPreferences)
+    // Existing LiveData for scores
+    private MutableLiveData<Integer> _team1Score = new MutableLiveData<>(0);
+    private MutableLiveData<Integer> _team2Score = new MutableLiveData<>(0);
+    private MutableLiveData<String> _team1Name = new MutableLiveData<>();
+    private MutableLiveData<String> _team2Name = new MutableLiveData<>();
+    public LiveData<Integer> getTeam1Score() { return _team1Score; }
+    public LiveData<Integer> getTeam2Score() { return _team2Score; }
+    // Public LiveData to be observed by the Fragment
+    public LiveData<String> getTeam1Name() {
+        return _team1Name;
+    }
+    public LiveData<String> getTeam2Name() {
+        return _team2Name;
+    }
 
     // Existing LiveData for active team
     public LiveData<Team> getActiveTeam() {
@@ -67,22 +75,21 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         super(application); // Pass the application to the super constructor
         this.savedStateHandle = savedStateHandle;
         this.database = AppDatabase.getDatabase(application);
+        sharedPreferences = application.getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE);
+
         teamDao = database.teamDao();
         teamsLive = teamDao.getAllTeams();
+
+        String initialTeam1Name = sharedPreferences.getString(KEY_TEAM_1_NAME, "");
+        String initialTeam2Name = sharedPreferences.getString(KEY_TEAM_2_NAME, "");
+        _team1Name.setValue(initialTeam1Name);
+        _team2Name.setValue(initialTeam2Name);
+
         _activeTeam.observeForever(activeTeam -> {
             Log.d("GameVMActiveTeam", "Active team changed in ViewModel: " + (activeTeam != null ? activeTeam.getTeamName() : "null"));
         });
-        team2Name = savedStateHandle.getLiveData(TEAM_2_NAME_KEY, "");
     };
     // Method to update Team 2 name in SavedStateHandle
-    public void setTeam2Name(String name) {
-        Log.d("SharedViewModel", "Setting Team 2 name in SavedStateHandle: " + name);
-        savedStateHandle.set(TEAM_2_NAME_KEY, name);
-    }
-    // Method to expose Team 2 name LiveData
-    public LiveData<String> getTeam2Name() {
-        return team2Name;
-    }
     public void setActiveTeamName(String name) {
         // When activeTeamName is set externally, fetch and set _activeTeam
         if (name != null && !name.isEmpty()) {
@@ -221,20 +228,14 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
 
     public void setCurrentQuarter(int quarter) {currentQuarter.setValue(quarter);}
 
-        public LiveData<Integer> getTeam1Score() {
-        return team1Score;
-    }
     public void updateTeam1Score(int scoreChange) {
-        if (team1Score.getValue() != null) {
-            team1Score.setValue(team1Score.getValue() + scoreChange);
+        if (_team1Score.getValue() != null) {
+            _team1Score.setValue(_team1Score.getValue() + scoreChange);
         }
     }
-    public LiveData<Integer> getTeam2Score() {
-        return team2Score;
-    }
     public void updateTeam2Score(int scoreChange) {
-        if (team2Score.getValue() != null) {
-            team2Score.setValue(team2Score.getValue() + scoreChange);
+        if (_team2Score.getValue() != null) {
+            _team2Score.setValue(_team2Score.getValue() + scoreChange);
         }
     }
 
@@ -286,14 +287,14 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     private void loadScoresFromPreferences() {
         int score1 = sharedPreferences.getInt("iScore1", 0);
         int score2 = sharedPreferences.getInt("iScore2", 0);
-        team1Score.setValue(score1);
-        team2Score.setValue(score2);
+        _team1Score.setValue(score1);
+        _team2Score.setValue(score2);
     }
 
     private void saveScoresToPreferences() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putInt("iScore1", team1Score.getValue());
-        editor.putInt("iScore2", team2Score.getValue());
+        editor.putInt("iScore1", _team1Score.getValue());
+        editor.putInt("iScore2", _team2Score.getValue());
         editor.apply();
     }
 
@@ -327,8 +328,8 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         gameTimer.setValue(time); // Update the timer display
     }
     public void resetGame() {
-        team1Score.setValue(0); // Reset Team 1 score
-        team2Score.setValue(0); // Reset Team 2 score
+        _team1Score.setValue(0); // Reset Team 1 score
+        _team2Score.setValue(0); // Reset Team 2 score
         gameTimer.setValue("00:00"); // Reset the timer
         currentQuarter.setValue(1); // Reset to the first quarter
     }
@@ -341,6 +342,20 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
             setCurrentCentrePass("Team2");
             setTeam1ScoreColor(Color.rgb(0, 0, 0));
             setTeam2ScoreColor(Color.rgb(51, 232, 20));
+        }
+    }
+    public void saveTeam1Name(String name) {
+        if (!name.equals(_team1Name.getValue())) { // Only save and update if the name has changed
+            sharedPreferences.edit().putString(KEY_TEAM_1_NAME, name).apply();
+            _team1Name.setValue(name); // Update the LiveData
+        }
+    }
+
+    // Method to save Team 2 name to SharedPreferences and update LiveData
+    public void saveTeam2Name(String name) {
+        if (!name.equals(_team2Name.getValue())) { // Only save and update if the name has changed
+            sharedPreferences.edit().putString(KEY_TEAM_2_NAME, name).apply();
+            _team2Name.setValue(name); // Update the LiveData
         }
     }
 }
