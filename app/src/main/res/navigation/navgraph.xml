@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/frag_TeamList">
+
+    <fragment
+        android:id="@+id/frag_TeamList"
+        android:name="com.robmapps.keepingscore.Frag_TeamList"
+        android:label="fragment_team_list"
+        tools:layout="@layout/fragment_team_list" />
+
+</navigation>

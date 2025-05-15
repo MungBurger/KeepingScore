@@ -46,7 +46,7 @@ public class Frag_Gameplay extends Fragment {
     public EditText etTeam1,etTeam2;
     public int iScore1, iScore2, iGS1, iGA1, iGS2, iGA2, iGS1M, iGA1M, iGS2M, iGA2M, iNumPers,iPerDuration,iPerNum,iLength;
     public long TimeMultiplier;
-    public String sScore1, timeFormatted,sTeam1,sTeam2,sAllStats, StatsFileName,filePath, sLastAction, sCentrePass,sInGameTime,sCurrMode;
+    public String sScore1, timeFormatted,sTeam1,sTeam2, StatsFileName,filePath, sLastAction, sCentrePass,sGSPlayer,sGAPlayer,sCurrMode;
     public Boolean bTimerRunning=false, bDebugMode=false;
     public Button btnShowStats, btnPlayerList, btnStartGame, btnBestOnCourt, btnLoadSaved,btnUndo,btnGameMode,btnReset;
     public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M; /*For enabling and disabling*/
@@ -77,7 +77,7 @@ public class Frag_Gameplay extends Fragment {
         btnUndo=view.findViewById(R.id.UndoButton);btnReset= view.findViewById(R.id.ResetGame);
         btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
         btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
-
+        btnShowStats=view.findViewById(R.id.Statistics);
         //sCurrMode = "10m,2H"; // Default mode
         tvTimeRem = view.findViewById(R.id.TimeRem);
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
@@ -90,24 +90,38 @@ public class Frag_Gameplay extends Fragment {
                 Log.d("GameplayActiveTeamObs", "Active team is NOT null.");
                 if (activeTeam.getTeamName() != null) {
                     tvTeam1.setText(activeTeam.getTeamName());
-                    tvTeam1.setTextColor(Color.BLUE); // Set a strong color
-                    tvTeam1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30); // Make the text large
-                    Log.d("GameplayActiveTeamObs", "Active team name is: " + activeTeam.getTeamName());
-
                     tvTeam1.requestLayout(); // Request layout pass
                     tvTeam1.invalidate();    // Request redraw pass
-                    updateGameTitle();
+                    // --- Iterate through players to find GS and GA ---
+                    List<Player> players = activeTeam.getPlayers();
+                    sGSPlayer = null; // Initialize to null before searching
+                    sGAPlayer = null; // Initialize to null before searching
 
-                    Log.d("GameplayActiveTeamObs", "Requested layout and invalidate for tvTeam1.");
+                    if (players != null) {
+                        for (Player player : players) {
+                            if (player.getPosition() != null && player.getPosition().equals("GS")) {
+                                sGSPlayer = player.getName();
+                            } else if (player.getPosition() != null && player.getPosition().equals("GA")) {
+                                sGAPlayer = player.getName();
+                            }
+                            // You can add checks for other positions here if needed
+                        }
+                    }
+                    updateGameTitle();
                 } else {
                     Log.d("GameplayActiveTeamObs", "Active team name IS null.");
                     tvTeam1.setText(""); // Clear if name is null
+                    sGSPlayer = null;
+                    sGAPlayer = null;
                     updateGameTitle();
                 }
             } else {
                 Log.d("GameplayActiveTeamObs", "Active team IS null.");
                 // If no active team, set text to empty (or your default)
+                sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
                 tvTeam1.setText(""); // Assuming you want to clear the text if no active team
+                sGSPlayer = null;
+                sGAPlayer = null;
                 updateGameTitle();
             }
 
@@ -141,15 +155,15 @@ public class Frag_Gameplay extends Fragment {
 */
 
         // Set listeners for Team 1 buttons
-        btnGS1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", true);        });
-        btnGA1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GA1", true);        });
-        btnGS1M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", false);        });
-        btnGA1M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GA1", false);        });
+        btnGS1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", sGSPlayer,true);        });
+        btnGA1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GA1", sGAPlayer, true);        });
+        btnGS1M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", sGSPlayer,false);        });
+        btnGA1M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GA1", sGAPlayer,false);        });
         // Set listeners for Team 2 buttons
-        btnGS2.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", true);        });
-        btnGA2.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", true);        });
-        btnGS2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", false);        });
-        btnGA2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", false);        });
+        btnGS2.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", "Other",true);        });
+        btnGA2.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", "Other",true);        });
+        btnGS2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", "Other",false);        });
+        btnGA2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", "Other",false);        });
 
         view.findViewById(R.id.Team1Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
         view.findViewById(R.id.Team2Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
@@ -163,6 +177,13 @@ public class Frag_Gameplay extends Fragment {
         btnStartGame.setOnClickListener(v -> startGameTimer());
         btnGameMode.setOnLongClickListener(v -> GameModeDebug());
         btnReset.setOnClickListener(v -> resetGame());
+
+        btnShowStats.setOnClickListener(v -> { // Start of the lambda expression
+            // Usage example
+            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()) + " [" + sTeam1 + "] v [" + sTeam2 + "].txt";
+            exportGameStats(StatsFileName, String.valueOf(sAllActions));
+        }); // End of the lambda expression
+
         // Observe Centre-Pass State and Colors
         viewModel.getCurrentCentrePass().observe(getViewLifecycleOwner(), centrePass -> {
             Log.d("CentrePass", "Current Centre-Pass: " + centrePass);
@@ -260,7 +281,7 @@ public class Frag_Gameplay extends Fragment {
         return null;
     }
 
-    private void incrementScore(SharedViewModel viewModel, TextView scoreView, String playerPosition, boolean isSuccessful) {
+    private void incrementScore(SharedViewModel viewModel, TextView scoreView, String playerPosition,String playerName, boolean isSuccessful) {
         if (isSuccessful) {
             if (scoreView == tvScore1) {
                 viewModel.updateTeam1Score(1); // Increment score for Team 1
@@ -270,7 +291,23 @@ public class Frag_Gameplay extends Fragment {
             viewModel.swapCentrePass();
         }
         String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-        sAllActions.append("\n~ " + playerPosition + "GS1, " +" "+timeFormatted);
+        String ssuccess=new String();
+        if (isSuccessful){
+            ssuccess="Goal";
+        } else {
+            ssuccess="Miss";
+        }
+        if(playerPosition=="GS1"){
+            playerName=sGSPlayer;
+        } else {
+            if(playerPosition=="GA1"){
+                playerName=sGAPlayer;
+            } else {
+            playerName="Ohers";
+            }
+        }
+
+        sAllActions.append("\n~ "+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
         viewModel.recordAttempt(playerPosition, isSuccessful, timestamp);
     }
 
@@ -461,8 +498,8 @@ public class Frag_Gameplay extends Fragment {
         sAllActions.setLength(0);
         sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
 
-        tvTeam1.setText(sTeam1);
-        etTeam2.setText(sTeam2);
+        /*tvTeam1.setText(sTeam1);
+        etTeam2.setText(sTeam2);*/
     }
 
     public void onPause() {
@@ -502,11 +539,11 @@ public class Frag_Gameplay extends Fragment {
         }).start();
     }
 
-    private void exportGameStats(String fileName, String gameStats) {
+    private void exportGameStats(String fileName, String sAllActions) {
         try {
             File file = new File(requireContext().getExternalFilesDir(null), fileName);
             FileWriter writer = new FileWriter(file);
-            writer.write(gameStats); // Write stats content to file
+            writer.write(sAllActions); // Write stats content to file
             writer.close();
             Toast.makeText(getContext(), "Stats saved to " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
@@ -565,7 +602,6 @@ public class Frag_Gameplay extends Fragment {
         }
         inputMethodManager.hideSoftInputFromWindow(focusedView.getWindowToken(), 0); // Hide the keyboard
     }
-
     private void clearFocusFromEditTexts() {
         Activity activity = requireActivity();
         View focusedView = activity.getCurrentFocus();
@@ -573,12 +609,7 @@ public class Frag_Gameplay extends Fragment {
             focusedView.clearFocus(); // Clear focus from the focused EditText
         }
     }
-/*
-    // Usage example
-    String fileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date())
-            + " [" + team1Name + "] v [" + team2Name + "].csv";
-    exportGameStats(fileName, gameStatsContent);
-*/
+
 @Override
 public void onDestroyView() {
     super.onDestroyView();

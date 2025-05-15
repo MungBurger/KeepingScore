@@ -60,7 +60,7 @@ public class Frag_FrontPage extends Fragment {
         // Inflate the layout for this fragment
         view=inflater.inflate(R.layout.fragment_team_list,container,false);
         etFrontPage = view.findViewById(R.id.etFrontPage);
-        Button btnFrontPage = view.findViewById(R.id.btnFrontPage);
+        //Button btnFrontPage = view.findViewById(R.id.btnFrontPage);
         /*btnFrontPage.setOnClickListener(new View.OnClickListener () {
             @Override
             public void onClick(View v) {

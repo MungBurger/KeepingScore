@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         FragmentManager fragmentManager = getSupportFragmentManager();
         List<Fragment> fragments = fragmentManager.getFragments();
         boolean noActiveFragments = true; // Assume no active fragments initially\
@@ -43,15 +44,15 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         // Set the initial fragment if none exists
         if (savedInstanceState == null) {
             fragmentManager.beginTransaction()
-                    .add(R.id.fragmentContainerView1, new Frag_FrontPage(), "Frag_FrontPage")
-                    .addToBackStack("Frag_FrontPage") // Ensure the tag is also the back stack name
+                    .add(R.id.fragmentContainerView1, new Frag_TeamList(), "Frag_TeamList")
+                    .addToBackStack("Frag_TeamList") // Ensure the tag is also the back stack name
                     .commit();
         }
 
-        Button btnFront=findViewById(R.id.btnFrontPage);
+/*        Button btnFront=findViewById(R.id.btnFrontPage);
         btnFront.setOnClickListener(v -> {
             activateFragment("Frag_FrontPage", new Frag_FrontPage());
-        });
+        });*/
         Button btnGameplay = findViewById(R.id.btnGamePlay);
         btnGameplay.setOnClickListener(v -> {
             activateFragment("Frag_Gameplay", new Frag_Gameplay());
