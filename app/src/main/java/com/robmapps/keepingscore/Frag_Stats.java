@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class Frag_Stats extends Fragment {
 
     private GameStatsAdapter adapter;
-
+    private RecyclerView rvCurrentGameStats;
 
     @Nullable
     @Override
@@ -49,8 +49,6 @@ public class Frag_Stats extends Fragment {
 
             }
         });
-
-
 
 
         return view;

@@ -27,9 +27,11 @@ import java.util.concurrent.Executors;
 
 public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewModel
     private final MutableLiveData<HashMap<String, ArrayList<Player>>> teams = new MutableLiveData<>(new HashMap<>());
-/*    private final MutableLiveData<Integer> team1Score = new MutableLiveData<>(0);
-    private final MutableLiveData<Integer> team2Score = new MutableLiveData<>(0);*/
     private final MutableLiveData<String> gameTimer = new MutableLiveData<>("00:00");
+    private final MutableLiveData<String> bonusTimer = new MutableLiveData<>("00:00");
+    private final MutableLiveData<String> gameMode = new MutableLiveData<>("10m,2H");
+    private final MutableLiveData<Integer> currentPeriod = new MutableLiveData<>(1);
+    private final MutableLiveData<Boolean> gameInProgress = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> currentQuarter = new MutableLiveData<>(1);
     private final MutableLiveData<String> currentCentrePass = new MutableLiveData<>("Team1");
     private final MutableLiveData<Integer> team1ScoreColor = new MutableLiveData<>(Color.rgb(51, 232, 20)); // Default color for Team 1
@@ -65,11 +67,30 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<String> getTeam2Name() {
         return _team2Name;
     }
-
     // Existing LiveData for active team
     public LiveData<Team> getActiveTeam() {
         return _activeTeam;
     }
+    public LiveData<String> getGameMode() {
+        return gameMode;
+    }
+    public LiveData<Integer> getCurrentPeriod() {
+        return currentPeriod;
+    }
+    public LiveData<Boolean> getGameInProgress() {
+        return gameInProgress;
+    }
+
+    public void setGameInProgress(Boolean isInProgress) {
+        gameInProgress.setValue(isInProgress);
+    }
+    public void setCurrentPeriod(Integer period) {
+        currentPeriod.setValue(period);
+    }
+    public void setGameMode(String mode) {
+        gameMode.setValue(mode);
+    }
+
     // Constructor that accepts Application
     public SharedViewModel(@NonNull Application application, SavedStateHandle savedStateHandle) {
         super(application); // Pass the application to the super constructor

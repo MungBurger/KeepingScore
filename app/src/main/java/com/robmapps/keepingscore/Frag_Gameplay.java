@@ -13,7 +13,6 @@ import android.os.CountDownTimer;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,11 +20,9 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.IntentFilter;
-
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -40,6 +37,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import java.io.OutputStream;
 
 public class Frag_Gameplay extends Fragment {
     public TextView tvScore1, tvScore2, tvTimeRem,tvGameTitle, tvQuarterNum,tvTeam1;
@@ -53,6 +56,7 @@ public class Frag_Gameplay extends Fragment {
     public SharedPreferences spSavedValues;
     public CountDownTimer cdEndofPeriodTimer;
     public StringBuilder sAllActions;
+    private SharedViewModel viewModel;
 
     @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -61,8 +65,7 @@ public class Frag_Gameplay extends Fragment {
 
         setupUI(constraintLayout);
         sAllActions = new StringBuilder(0);
-        // Access the ViewModel
-        SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
+        viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
 
         // Bind UI elements
         tvScore1 = view.findViewById(R.id.Team1Score);
@@ -71,16 +74,25 @@ public class Frag_Gameplay extends Fragment {
         tvTeam1=view.findViewById(R.id.T1Name);
         tvTeam1.setEnabled(true);
         etTeam2 = view.findViewById(R.id.T2Name); // Initialize EditText for Team 2
-
+        btnUndo=view.findViewById(R.id.UndoButton);btnReset= view.findViewById(R.id.ResetGame);
         btnGS1=view.findViewById(R.id.GS1);btnGA1=view.findViewById(R.id.GA1);btnGS1M=view.findViewById(R.id.GS1Miss);btnGA1M=view.findViewById(R.id.GA1Miss);
         btnGS2=view.findViewById(R.id.GS2);btnGA2=view.findViewById(R.id.GA2);btnGS2M=view.findViewById(R.id.GS2Miss);btnGA2M=view.findViewById(R.id.GA2Miss);
-        btnUndo=view.findViewById(R.id.UndoButton);btnReset= view.findViewById(R.id.ResetGame);
-        btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
-        btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
         btnShowStats=view.findViewById(R.id.Statistics);
         //sCurrMode = "10m,2H"; // Default mode
         tvTimeRem = view.findViewById(R.id.TimeRem);
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
+        btnGameMode = view.findViewById(R.id.GameMode); // Initialize the Button
+
+        sCurrMode =viewModel.getGameMode().toString();
+        if(viewModel.getGameInProgress().getValue()==true) {
+            btnGS1.setEnabled(true);btnGA1.setEnabled(true);btnGS1M.setEnabled(true);btnGA1M.setEnabled(true);
+            btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
+            btnGameMode.setEnabled(false);
+        }else{
+            btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
+            btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
+            btnGameMode.setEnabled(true);
+        }
 
         // Observe Active Team Name
         viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
@@ -170,7 +182,7 @@ public class Frag_Gameplay extends Fragment {
 
         btnUndo.setOnClickListener(v -> {undoLastAction(viewModel);});
 
-        btnGameMode = view.findViewById(R.id.GameMode); // Initialize the Button
+
         sCurrMode = btnGameMode.getText().toString(); // Default mode
         btnGameMode.setOnClickListener(v -> {GameMode(view);});
         btnStartGame = view.findViewById(R.id.btnStartGame);
@@ -178,11 +190,10 @@ public class Frag_Gameplay extends Fragment {
         btnGameMode.setOnLongClickListener(v -> GameModeDebug());
         btnReset.setOnClickListener(v -> resetGame());
 
-        btnShowStats.setOnClickListener(v -> { // Start of the lambda expression
-            // Usage example
-            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()) + " [" + sTeam1 + "] v [" + sTeam2 + "].txt";
+        btnShowStats.setOnClickListener(v -> {
+            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " [" + sTeam1 + "] v [" + sTeam2 + "].txt";
             exportGameStats(StatsFileName, String.valueOf(sAllActions));
-        }); // End of the lambda expression
+        });
 
         // Observe Centre-Pass State and Colors
         viewModel.getCurrentCentrePass().observe(getViewLifecycleOwner(), centrePass -> {
@@ -396,6 +407,9 @@ public class Frag_Gameplay extends Fragment {
         btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
         sCurrMode = btnGameMode.getText().toString();
 
+        viewModel.setGameInProgress(true);
+        viewModel.setCurrentPeriod(1);
+
         parseGameMode(); // Ensure period duration and number of periods are set
         // Start the timer service
         Intent intent = new Intent(requireContext(), TimerService.class);
@@ -409,7 +423,7 @@ public class Frag_Gameplay extends Fragment {
         btnGameMode.setEnabled(false);btnStartGame.setEnabled(false);
     }
     private void EndOfPeriodTimer(){
-        tvTimeRem.setTextColor(Color.rgb(255,100,0));
+        tvTimeRem.setTextColor(Color.rgb(255,150,0));
         if (bDebugMode){
             TimeMultiplier=6000;
         } else {
@@ -429,6 +443,8 @@ public class Frag_Gameplay extends Fragment {
             @Override
             public void onFinish() {
                 bTimerRunning=false;
+                viewModel.setGameInProgress(false);
+
                 btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
                 btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
             }
@@ -474,7 +490,7 @@ public class Frag_Gameplay extends Fragment {
             } else if ("END_OF_PERIOD_ACTION".equals(action)) {
                 int currentPeriod = intent.getIntExtra("CURRENT_PERIOD", 1);
                 int totalPeriods = intent.getIntExtra("TOTAL_PERIODS", 4);
-
+                btnStartGame.setEnabled(true);
                 // Trigger UI updates or alerts for end of period
                 Toast.makeText(context, "Period " + currentPeriod + " has ended.", Toast.LENGTH_SHORT).show();
                 EndOfPeriodTimer();
@@ -538,8 +554,58 @@ public class Frag_Gameplay extends Fragment {
             db.gameStatsDao().insertGameStats(stats);
         }).start();
     }
-
     private void exportGameStats(String fileName, String sAllActions) {
+        OutputStream fos = null; // Use OutputStream
+        Uri uri = null;
+
+        try {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName); // File name
+            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain"); // File MIME type
+
+            // For Android Q (API 29) and above, save to the "Downloads" collection
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                uri = requireContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues);
+            } else {
+                // For older versions, save to the public Downloads directory
+                // This requires WRITE_EXTERNAL_STORAGE permission for API < 29
+                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs(); // Create the directory if it doesn't exist
+                }
+                File file = new File(downloadsDir, fileName);
+                uri = Uri.fromFile(file); // Get Uri from file path for older versions
+            }
+
+            if (uri == null) {
+                Toast.makeText(getContext(), "Failed to create file for saving.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            fos = requireContext().getContentResolver().openOutputStream(uri);
+            if (fos != null) {
+                fos.write(sAllActions.getBytes()); // Write stats content to file
+                Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(getContext(), "Failed to open output stream.", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (IOException e) {
+            Toast.makeText(getContext(), "Failed to save stats: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        } finally {
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+/*    private void exportGameStats(String fileName, String sAllActions) {
+
         try {
             File file = new File(requireContext().getExternalFilesDir(null), fileName);
             FileWriter writer = new FileWriter(file);
@@ -550,7 +616,7 @@ public class Frag_Gameplay extends Fragment {
             Toast.makeText(getContext(), "Failed to save stats.", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
         }
-    }
+    }*/
     private View.OnClickListener updateGameTitle() {
         String team1Name = tvTeam1.getText().toString();
         String team2Name = etTeam2.getText().toString();

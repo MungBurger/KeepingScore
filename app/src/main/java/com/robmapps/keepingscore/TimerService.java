@@ -56,7 +56,7 @@ public class TimerService extends Service {
 
                 if (currentPeriod < totalPeriods) {
                     currentPeriod++;
-                    startTimer(periodDuration * 60 * 1000L); // Start next period
+                    //startTimer(periodDuration * 60 * 1000L); // Start next period
                 } else {
                     stopSelf(); // Stop the service entirely when all periods are done
                 }

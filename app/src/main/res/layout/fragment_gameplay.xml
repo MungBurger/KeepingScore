@@ -132,7 +132,7 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="80dp"
                 android:layout_height="40dp"
-                android:text="Setup" />
+                android:text="TBA 1" />
 
             <Button
                 android:id="@+id/ResetGame"
@@ -168,7 +168,7 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="89dp"
                 android:layout_height="40dp"
-                android:text="Players"
+                android:text="TBA 2"
                 android:textAlignment="center" />
 
             <Button
