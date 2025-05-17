@@ -132,7 +132,8 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="80dp"
                 android:layout_height="40dp"
-                android:text="TBA 1" />
+                android:text="TBA 1"
+                android:enabled="false"/>
 
             <Button
                 android:id="@+id/ResetGame"
@@ -161,6 +162,7 @@
                 android:layout_width="112dp"
                 android:layout_height="50dp"
                 android:text="Best on Court"
+                android:enabled="false"
                 android:textAlignment="center" />
 
             <Button
@@ -169,6 +171,7 @@
                 android:layout_width="89dp"
                 android:layout_height="40dp"
                 android:text="TBA 2"
+                android:enabled="false"
                 android:textAlignment="center" />
 
             <Button

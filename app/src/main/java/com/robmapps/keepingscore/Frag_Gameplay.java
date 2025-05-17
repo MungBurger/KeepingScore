@@ -83,7 +83,15 @@ public class Frag_Gameplay extends Fragment {
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
         btnGameMode = view.findViewById(R.id.GameMode); // Initialize the Button
 
-        sCurrMode =viewModel.getGameMode().toString();
+        sCurrMode =viewModel.getGameMode().getValue().toString();
+        //sCurrMode="15m,4Q"; // Default game mode
+        Log.d("GameVariables", "Game Mode = " + sCurrMode); // Log when observer is triggered
+        if (sCurrMode.length() >8) {
+            sCurrMode="15m,4Q"; // Default game mode
+            btnGameMode.setText(sCurrMode);
+        }else {
+            btnGameMode.setText(sCurrMode);
+        }
         if(viewModel.getGameInProgress().getValue()==true) {
             btnGS1.setEnabled(true);btnGA1.setEnabled(true);btnGS1M.setEnabled(true);btnGA1M.setEnabled(true);
             btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
@@ -179,19 +187,20 @@ public class Frag_Gameplay extends Fragment {
 
         view.findViewById(R.id.Team1Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
         view.findViewById(R.id.Team2Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
+        btnStartGame = view.findViewById(R.id.btnStartGame);
 
         btnUndo.setOnClickListener(v -> {undoLastAction(viewModel);});
-
-
         sCurrMode = btnGameMode.getText().toString(); // Default mode
         btnGameMode.setOnClickListener(v -> {GameMode(view);});
-        btnStartGame = view.findViewById(R.id.btnStartGame);
         btnStartGame.setOnClickListener(v -> startGameTimer());
         btnGameMode.setOnLongClickListener(v -> GameModeDebug());
+        viewModel.setGameMode(sCurrMode);
         btnReset.setOnClickListener(v -> resetGame());
 
         btnShowStats.setOnClickListener(v -> {
-            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " [" + sTeam1 + "] v [" + sTeam2 + "].txt";
+            sTeam1=tvTeam1.getText().toString();
+            sTeam2=etTeam2.getText().toString();
+            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) +  sTeam1 + " v " + sTeam2 + ".txt";
             exportGameStats(StatsFileName, String.valueOf(sAllActions));
         });
 
@@ -343,10 +352,9 @@ public class Frag_Gameplay extends Fragment {
         }
     }
     public void GameMode(View view){
-
         bDebugMode=false;
         if (sCurrMode == null) {
-            sCurrMode = "10m,2H"; // Fallback to a default value if null
+            sCurrMode = "15m,4Q"; // Fallback to a default value if null
         }
         switch (sCurrMode){
             case  "GameMode":
@@ -365,7 +373,7 @@ public class Frag_Gameplay extends Fragment {
                 iPerDuration=15;iNumPers=4;
                 btnGameMode.setText(sCurrMode);
                 break;
-            case "15m,4Q": /*For debugging*/
+            case "15m,4Q":
                 sCurrMode="10m,2H";
                 iPerDuration=10;iNumPers=2;
                 btnGameMode.setText(sCurrMode);
@@ -386,6 +394,9 @@ public class Frag_Gameplay extends Fragment {
                 btnGameMode.setText(sCurrMode);
                 break;
         }
+        viewModel.setGameMode(sCurrMode);
+        Log.d("GameVariables", "Game Mode (local) = " + sCurrMode); // Log when observer is triggered
+        Log.d("GameVariables", "Game Mode (SVM) = " + viewModel.getGameMode().getValue()); // Log when observer is triggered
     }
     public boolean GameModeDebug(){
         //Toast.makeText(MainActivity.this,"Debug mode",Toast.LENGTH_SHORT).show();
@@ -393,7 +404,9 @@ public class Frag_Gameplay extends Fragment {
         iPerDuration=1;iNumPers=2;
         btnGameMode.setText(sCurrMode);
         bDebugMode=true;
+        viewModel.setGameMode(sCurrMode);
         Toast.makeText(requireContext(),"Debug mode",Toast.LENGTH_SHORT).show();
+        Log.d("GameVariables", "Game Mode = " + sCurrMode); // Log when observer is triggered
         return true;
     }
 
@@ -429,6 +442,7 @@ public class Frag_Gameplay extends Fragment {
         } else {
             TimeMultiplier=60000;
         }
+        iPerNum++;
         cdEndofPeriodTimer = new CountDownTimer(TimeMultiplier /3, 1000) { /* x minutes countdown after normal period is ended, until buttons are disabled.*/
             @Override
             public void onTick(long millisUntilFinished) {
@@ -511,11 +525,13 @@ public class Frag_Gameplay extends Fragment {
         iGA2M = spSavedValues.getInt("iGA2M",0);
         sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
         sTeam2=spSavedValues.getString("etTeam2",sTeam2);
+
+        viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",false));
+        viewModel.setGameMode(spSavedValues.getString("GameMode","15m,4H"));
+        viewModel.setCurrentPeriod(spSavedValues.getInt("CurrPeriod",1));
+
         sAllActions.setLength(0);
         sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
-
-        /*tvTeam1.setText(sTeam1);
-        etTeam2.setText(sTeam2);*/
     }
 
     public void onPause() {
@@ -539,6 +555,10 @@ public class Frag_Gameplay extends Fragment {
         spEditor.putString("tvTeam1",tvTeam1.getText().toString());
         spEditor.putString("etTeam2",etTeam2.getText().toString());
         spEditor.putString("sAllActions",sAllActions.toString());
+
+        spEditor.putBoolean("GameInProgress",viewModel.getGameInProgress().getValue());
+        spEditor.putString("GameMode",viewModel.getGameMode().getValue());
+        spEditor.putString("CurrPeriod", String.valueOf(viewModel.getCurrentPeriod().getValue()));
 
         GameStats stats = new GameStats(
                 new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date()),
@@ -604,19 +624,6 @@ public class Frag_Gameplay extends Fragment {
             }
         }
     }
-/*    private void exportGameStats(String fileName, String sAllActions) {
-
-        try {
-            File file = new File(requireContext().getExternalFilesDir(null), fileName);
-            FileWriter writer = new FileWriter(file);
-            writer.write(sAllActions); // Write stats content to file
-            writer.close();
-            Toast.makeText(getContext(), "Stats saved to " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            Toast.makeText(getContext(), "Failed to save stats.", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        }
-    }*/
     private View.OnClickListener updateGameTitle() {
         String team1Name = tvTeam1.getText().toString();
         String team2Name = etTeam2.getText().toString();
