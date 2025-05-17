@@ -134,8 +134,10 @@ public class Frag_TeamList extends Fragment {
             // Update the team name EditText
             if (activeTeam != null && !activeTeam.getTeamName().equals(etTeamName.getText().toString())) {
                 etTeamName.setText(activeTeam.getTeamName());
+                updatePlayerControlsState(true);
             } else if (activeTeam == null) {
                 // Clear the team name if no active team
+                updatePlayerControlsState(false);
                 etTeamName.setText("");
             }
 
@@ -199,6 +201,7 @@ public class Frag_TeamList extends Fragment {
             Toast.makeText(getContext(), "New team saved!", Toast.LENGTH_SHORT).show();
         }
         hasUnsavedChanges = false; // Reset the unsaved changes flag
+        updatePlayerControlsState(true);
     }
     private void deleteCurrentTeam() {
         String teamName = etTeamName.getText().toString().trim();
@@ -214,7 +217,7 @@ public class Frag_TeamList extends Fragment {
                 .setMessage("Are you sure you want to delete the team \"" + teamName + "\"? This action cannot be undone.")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
-                    viewModel.removeTeam(teamName); // Remove the team from the ViewModel
+                    viewModel.deleteTeam(teamName); // Remove the team from the ViewModel
 
                     // Refresh UI
                     etTeamName.setText("");
@@ -241,7 +244,7 @@ public class Frag_TeamList extends Fragment {
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
         viewModel.setActiveTeamName(""); // Set active team name to an empty string
         Log.d("NewTeamDebug", "Active team reset to: " + viewModel.getActiveTeamName().getValue());
-
+        updatePlayerControlsState(true);
         // Set focus to the team name field
         etTeamName.requestFocus(); // Move cursor to the EditText
 
@@ -405,5 +408,16 @@ public class Frag_TeamList extends Fragment {
             }
         }
     }
-
+    private void updatePlayerControlsState(boolean enabled) {
+        if (etPlayerName != null) {
+            etPlayerName.setEnabled(enabled);
+        }
+        if (btnAddPlayer != null) {
+            btnAddPlayer.setEnabled(enabled);
+        }
+        // Optionally change appearance, e.g., alpha
+        // float alpha = enabled ? 1.0f : 0.5f;
+        // if (etPlayerName != null) etPlayerName.setAlpha(alpha);
+        // if (btnAddPlayer != null) btnAddPlayer.setAlpha(alpha);
+    }
 }

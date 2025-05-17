@@ -135,6 +135,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<List<Team>> getTeamsLive() {
         return database.teamDao().getAllTeams(); // Return all teams
     }
+
     // New LiveData for Game Stats
     public LiveData<List<GameStats>> getAllGameStats() {
         return database.gameStatsDao().getAllGameStats(); // Fetch all game stats from Room
@@ -146,13 +147,6 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
 
     public void deleteGameStatsById(int id) {
         new Thread(() -> database.gameStatsDao().deleteGameStatsById(id)).start(); // Delete a specific game by ID
-    }
- /*   public void insertTeam(Team team) {
-        new Thread(() -> database.teamDao().insertTeam(team)).start(); // Insert a team asynchronously
-    }*/
-
-    public void deleteAllTeams() {
-        new Thread(() -> database.teamDao().deleteAllTeams()).start(); // Delete all teams asynchronously
     }
 
     public List<Team> getTeamsDirect() {
@@ -201,10 +195,6 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
                     }
                 });
             });
-
-            // No need to set activeTeamName here anymore. _activeTeam is being set
-            // within the observer above after the data is fetched.
-            // activeTeamName.postValue(team.getTeamName()); // Remove or comment out this line
         });
     }
 
@@ -294,16 +284,54 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     }
     public void setTeams(HashMap<String, ArrayList<Player>> updatedTeams) {
         teams.setValue(updatedTeams);
+    }// Inside SharedViewModel.java
+
+    public void deleteTeam(String teamNameToDelete) {
+        Log.d("SharedViewModel", "Attempting to delete team by name: " + teamNameToDelete);
+        if (teamNameToDelete == null || teamNameToDelete.isEmpty()) {
+            Log.e("SharedViewModel", "Cannot delete team, name is null or empty.");
+            return;
+        }
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            // Get the current active team BEFORE deleting
+            Team currentActiveTeamBeforeDeletion = _activeTeam.getValue();
+
+            // Use the specific DAO method to delete by name
+            teamDao.deleteTeamByName(teamNameToDelete); // This is from your TeamDAO.java
+            Log.d("SharedViewModel", "Deletion executed for team: " + teamNameToDelete + " from database.");
+
+            // No need to manually update a _teamsLive here because getTeamsLive()
+            // returns LiveData directly from Room, which auto-updates.
+
+            // Check if the deleted team was the active team
+            if (currentActiveTeamBeforeDeletion != null && teamNameToDelete.equals(currentActiveTeamBeforeDeletion.getTeamName())) {
+                Log.d("SharedViewModel", "Deleted team '" + teamNameToDelete + "' was active. Clearing activeTeam.");
+                _activeTeam.postValue(null); // Update activeTeam on the main thread via postValue
+            }
+        });
     }
 
-    public void removeTeam(String teamName) {
+    // In your deleteAllTeams(), you also don't need to manually update _teamsLive if getTeamsLive() is from DAO
+    public void deleteAllTeams() {
+        Executors.newSingleThreadExecutor().execute(() -> { // Use Executors for consistency
+            Log.d("SharedViewModel", "Deleting all teams from database.");
+            teamDao.deleteAllTeams(); // Deletes all from DB
+            // Room will auto-update the LiveData from getTeamsLive()
+
+            Log.d("SharedViewModel", "Clearing active team after deleting all teams.");
+            _activeTeam.postValue(null); // Clear active team
+        });
+    }
+
+/*    public void removeTeam(String teamName) {
         if (teams.getValue() != null) {
             // Safely create a new HashMap only if teams.getValue() is not null
             HashMap<String, ArrayList<Player>> currentTeams = teams.getValue() != null ? new HashMap<>(teams.getValue()) : new HashMap<>();
             currentTeams.remove(teamName); // Remove the team by name
             teams.setValue(currentTeams); // Update LiveData
         }
-    }
+    }*/
 
     private void loadScoresFromPreferences() {
         int score1 = sharedPreferences.getInt("iScore1", 0);

@@ -19,9 +19,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="#C1E8B3"
-                    android:text="Team Selection"
+                    android:text="Home Team Selection"
                     android:textAlignment="center"
-                    android:textSize="14sp"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <!-- Spinner moved above team name input -->
