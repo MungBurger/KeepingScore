@@ -364,6 +364,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
             setTeam1ScoreColor(Color.rgb(0, 0, 0));
             setTeam2ScoreColor(Color.rgb(51, 232, 20));
         }
+
     }
     public void saveTeam1Name(String name) {
         if (!name.equals(_team1Name.getValue())) { // Only save and update if the name has changed

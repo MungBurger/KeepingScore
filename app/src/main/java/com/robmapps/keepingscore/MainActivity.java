@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import android.app.AlertDialog;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -20,8 +21,8 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_main);
-
         FragmentManager fragmentManager = getSupportFragmentManager();
         List<Fragment> fragments = fragmentManager.getFragments();
         boolean noActiveFragments = true; // Assume no active fragments initially\

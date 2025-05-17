@@ -17,13 +17,18 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.IntentFilter;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.animation.ObjectAnimator;
+import android.animation.Animator;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.annotation.NonNull;
@@ -31,7 +36,6 @@ import androidx.annotation.Nullable;
 import com.robmapps.keepingscore.database.AppDatabase;
 import com.robmapps.keepingscore.database.entities.GameStats;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -46,17 +50,21 @@ import java.io.OutputStream;
 
 public class Frag_Gameplay extends Fragment {
     public TextView tvScore1, tvScore2, tvTimeRem,tvGameTitle, tvQuarterNum,tvTeam1;
-    public EditText etTeam1,etTeam2;
+    public EditText etTeam2;
     public int iScore1, iScore2, iGS1, iGA1, iGS2, iGA2, iGS1M, iGA1M, iGS2M, iGA2M, iNumPers,iPerDuration,iPerNum,iLength;
     public long TimeMultiplier;
-    public String sScore1, timeFormatted,sTeam1,sTeam2, StatsFileName,filePath, sLastAction, sCentrePass,sGSPlayer,sGAPlayer,sCurrMode;
+    public String sScore1, timeFormatted,sTeam1,sTeam2, StatsFileName,sGSPlayer,sGAPlayer,sCurrMode;
     public Boolean bTimerRunning=false, bDebugMode=false;
-    public Button btnShowStats, btnPlayerList, btnStartGame, btnBestOnCourt, btnLoadSaved,btnUndo,btnGameMode,btnReset;
-    public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M; /*For enabling and disabling*/
+    public Button btnShowStats, btnStartGame, btnBestOnCourt, btnUndo,btnGameMode,btnReset;
+    public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M;
     public SharedPreferences spSavedValues;
     public CountDownTimer cdEndofPeriodTimer;
     public StringBuilder sAllActions;
     private SharedViewModel viewModel;
+    private ImageView movingImageView;
+    private ObjectAnimator animatorX, animatorY; // To control the animation
+    private boolean movingToEndLocation = true; // To track animation direction
+    private float startX, startY, endX, endY;   // Coordinates for movement
 
     @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -78,10 +86,10 @@ public class Frag_Gameplay extends Fragment {
         btnGS1=view.findViewById(R.id.GS1);btnGA1=view.findViewById(R.id.GA1);btnGS1M=view.findViewById(R.id.GS1Miss);btnGA1M=view.findViewById(R.id.GA1Miss);
         btnGS2=view.findViewById(R.id.GS2);btnGA2=view.findViewById(R.id.GA2);btnGS2M=view.findViewById(R.id.GS2Miss);btnGA2M=view.findViewById(R.id.GA2Miss);
         btnShowStats=view.findViewById(R.id.Statistics);
-        //sCurrMode = "10m,2H"; // Default mode
         tvTimeRem = view.findViewById(R.id.TimeRem);
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
-        btnGameMode = view.findViewById(R.id.GameMode); // Initialize the Button
+        btnGameMode = view.findViewById(R.id.GameMode);
+        movingImageView = view.findViewById(R.id.centrePassCircle);
 
         sCurrMode =viewModel.getGameMode().getValue().toString();
         //sCurrMode="15m,4Q"; // Default game mode
@@ -144,9 +152,30 @@ public class Frag_Gameplay extends Fragment {
                 sGAPlayer = null;
                 updateGameTitle();
             }
-
         });
+        // Centre-pass circle info
+        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                // Remove the listener to prevent multiple calls
+                view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                if (tvScore1.getWidth() == 0 || tvScore1.getHeight() == 0 ||
+                        tvScore2.getWidth() == 0 || tvScore2.getHeight() == 0 || // <<< CHECK THIS
+                        movingImageView.getWidth() == 0 || movingImageView.getHeight() == 0) {
 
+                    // Define Start Location (e.g., left side of screen, middle vertically)
+                    startX = 5f;// tvScore1.getX() ;//+ (tvScore1.getWidth() / 2f) - (movingImageView.getWidth() );
+                    startY = tvScore1.getY() + (tvScore1.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
+
+                    endX = startX; // tvScore2.getX() + (tvScore2.getWidth() / 2f) - (movingImageView.getWidth() / 2f);
+                    endY = startY + 870f; // tvScore2.getY() + (tvScore2.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
+
+                    // Set initial position of the ImageView if not already set by layout
+                    movingImageView.setX(startX);
+                    movingImageView.setY(startY);
+                }
+            }
+        });
         // --- ADD THIS NEW OBSERVATION FOR TEAM 2 NAME ---
         // Observe Team 2 name from the ViewModel's SavedStateHandle
         viewModel.getTeam2Name().observe(getViewLifecycleOwner(), team2Name -> {
@@ -185,8 +214,12 @@ public class Frag_Gameplay extends Fragment {
         btnGS2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", "Other",false);        });
         btnGA2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", "Other",false);        });
 
-        view.findViewById(R.id.Team1Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
-        view.findViewById(R.id.Team2Score).setOnClickListener(v -> {            viewModel.swapCentrePass();         });
+        view.findViewById(R.id.Team1Score).setOnClickListener(v -> {
+            viewModel.swapCentrePass();
+            startImageAnimation();});
+        view.findViewById(R.id.Team2Score).setOnClickListener(v -> {
+            viewModel.swapCentrePass();
+            startImageAnimation();});
         btnStartGame = view.findViewById(R.id.btnStartGame);
 
         btnUndo.setOnClickListener(v -> {undoLastAction(viewModel);});
@@ -200,7 +233,7 @@ public class Frag_Gameplay extends Fragment {
         btnShowStats.setOnClickListener(v -> {
             sTeam1=tvTeam1.getText().toString();
             sTeam2=etTeam2.getText().toString();
-            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) +  sTeam1 + " v " + sTeam2 + ".txt";
+            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " " + sTeam1 + " v " + sTeam2 + ".txt";
             exportGameStats(StatsFileName, String.valueOf(sAllActions));
         });
 
@@ -308,6 +341,7 @@ public class Frag_Gameplay extends Fragment {
             } else if (scoreView == tvScore2) {
                 viewModel.updateTeam2Score(1); // Increment score for Team 2
             }
+            startImageAnimation();
             viewModel.swapCentrePass();
         }
         String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
@@ -326,8 +360,7 @@ public class Frag_Gameplay extends Fragment {
             playerName="Ohers";
             }
         }
-
-        sAllActions.append("\n~ "+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
+        sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
         viewModel.recordAttempt(playerPosition, isSuccessful, timestamp);
     }
 
@@ -344,9 +377,11 @@ public class Frag_Gameplay extends Fragment {
                 if (lastAction.getPlayerPosition().startsWith("GS1") || lastAction.getPlayerPosition().startsWith("GA1")) {
                     viewModel.updateTeam1Score(-1); // Decrement score for Team 1
                     viewModel.swapCentrePass();
+                    startImageAnimation();
                 } else if (lastAction.getPlayerPosition().startsWith("GS2") || lastAction.getPlayerPosition().startsWith("GA2")) {
                     viewModel.updateTeam2Score(-1); // Decrement score for Team 2
                     viewModel.swapCentrePass();
+                    startImageAnimation();
                 }
             }
         }
@@ -409,13 +444,13 @@ public class Frag_Gameplay extends Fragment {
         Log.d("GameVariables", "Game Mode = " + sCurrMode); // Log when observer is triggered
         return true;
     }
-
     private void startGameTimer() {
         if (bTimerRunning) {
             Toast.makeText(requireContext(), "Game Timer is already running!", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        btnGS1.setText("GS" + "\n"+sGSPlayer);
+        btnGA1.setText("GA" + "\n"+sGAPlayer);
         btnGS1.setEnabled(true);btnGA1.setEnabled(true);btnGS1M.setEnabled(true);btnGA1M.setEnabled(true);
         btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
         sCurrMode = btnGameMode.getText().toString();
@@ -434,6 +469,7 @@ public class Frag_Gameplay extends Fragment {
         bTimerRunning = true; // Set the timer state to running
         Toast.makeText(requireContext(), "Game Timer Started!", Toast.LENGTH_SHORT).show();
         btnGameMode.setEnabled(false);btnStartGame.setEnabled(false);
+        movingImageView.setVisibility(View.VISIBLE);
     }
     private void EndOfPeriodTimer(){
         tvTimeRem.setTextColor(Color.rgb(255,150,0));
@@ -476,7 +512,6 @@ public class Frag_Gameplay extends Fragment {
             }
         }
     }
-
     private BroadcastReceiver timerReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -525,6 +560,8 @@ public class Frag_Gameplay extends Fragment {
         iGA2M = spSavedValues.getInt("iGA2M",0);
         sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
         sTeam2=spSavedValues.getString("etTeam2",sTeam2);
+        sGSPlayer=spSavedValues.getString("sGSPlayer",sGSPlayer);
+        sGAPlayer=spSavedValues.getString("sGAPlayer",sGAPlayer);
 
         viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",false));
         viewModel.setGameMode(spSavedValues.getString("GameMode","15m,4H"));
@@ -533,7 +570,6 @@ public class Frag_Gameplay extends Fragment {
         sAllActions.setLength(0);
         sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
     }
-
     public void onPause() {
         super.onPause();
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -554,6 +590,9 @@ public class Frag_Gameplay extends Fragment {
         spEditor.putInt("iGA2M",iGA2M);
         spEditor.putString("tvTeam1",tvTeam1.getText().toString());
         spEditor.putString("etTeam2",etTeam2.getText().toString());
+        spEditor.putString("sGSPlayer",sGSPlayer);
+        spEditor.putString("sGAPlayer",sGAPlayer);
+
         spEditor.putString("sAllActions",sAllActions.toString());
 
         spEditor.putBoolean("GameInProgress",viewModel.getGameInProgress().getValue());
@@ -688,10 +727,70 @@ public void onDestroyView() {
     super.onDestroyView();
     requireContext().unregisterReceiver(timerReceiver);
 }
-    private String formatTime(long timeInMillis) {
-        long seconds = (timeInMillis / 1000) % 60;
-        long minutes = (timeInMillis / (1000 * 60)) % 60;
-        return String.format("%02d:%02d", minutes, seconds);
+private String formatTime(long timeInMillis) {
+    long seconds = (timeInMillis / 1000) % 60;
+    long minutes = (timeInMillis / (1000 * 60)) % 60;
+    return String.format("%02d:%02d", minutes, seconds);
+}
+
+
+    private void startImageAnimation() {
+        if (movingImageView == null || endX == 0) { // Check if view and coordinates are ready
+            return;
+        }
+        movingImageView.setVisibility(View.VISIBLE);
+
+        // Determine target coordinates based on the current direction
+        float targetX = movingToEndLocation ? endX : startX;
+        float targetY = movingToEndLocation ? endY : startY; // If Y also changes
+
+        // Animate X position
+        animatorX = ObjectAnimator.ofFloat(movingImageView, "translationX", movingImageView.getTranslationX(), targetX - movingImageView.getLeft());
+        animatorX = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
+        animatorX.setDuration(500);
+
+        animatorX.setInterpolator(new AccelerateDecelerateInterpolator()); // No cast needed if using android.view.animation.AccelerateDecelerateInterpolator
+
+        // If you also want to animate Y position:
+        // animatorY = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
+        // animatorY.setDuration(2000);
+        // animatorY.setInterpolator(new AccelerateDecelerateInterpolator());
+
+        animatorX.addListener((Animator.AnimatorListener) new MyAnimatorListenerAdapter());
+
+        animatorX.start();
+        // if (animatorY != null) animatorY.start(); // Start Y animator if used
+    }
+
+    private void stopImageAnimation() {
+        if (animatorX != null) {
+            animatorX.removeAllListeners(); // Important to remove listener to stop recursion
+            animatorX.cancel();
+            animatorX = null;
+        }
+        if (animatorY != null) {
+            // animatorY.removeAllListeners();
+            animatorY.cancel();
+            animatorY = null;
+        }
+        // Optional: Hide the image when animation stops
+        // if (movingImageView != null) {
+        //     movingImageView.setVisibility(View.GONE);
+        // }
+    }
+
+    private class MyAnimatorListenerAdapter extends android.animation.AnimatorListenerAdapter {
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            super.onAnimationEnd(animation);
+            // Reverse direction
+            movingToEndLocation = !movingToEndLocation;
+            // Start animation in the opposite direction
+            // Check if the fragment is still added to prevent crashes if fragment is destroyed
+            if (isAdded()) {
+                //startImageAnimation();
+            }
+        }
     }
 }
 
@@ -699,12 +798,14 @@ public void onDestroyView() {
 // TODO     Use nice pretty icons
 // TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track of player on and off times, and sum up total in-game time
 // TODO     Add players' player (best on court function)
-// TODO     Add first name of player in GS and GA to button
-// TODO     Export saved games to file; only commit finalised games.
-// TODO     Fix up exports
-// TODO     Fix up Playerlist display (RecyclerView)
 
 
+
+// Done:
+// TO DO     Add first name of player in GS and GA to button
+// TO DO     Export saved games to file; only commit finalised games.
+// TO DO     Fix up exports
+// TO DO     Fix up Playerlist display (RecyclerView)
 // TO DO     Implement reset game
 // TO DO     Implement enabled/disabled buttons
 // TO DO     Assign player name to positions
