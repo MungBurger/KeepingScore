@@ -7,7 +7,7 @@
     android:paddingTop="10dp"
     android:paddingRight="10dp"
     android:paddingBottom="10dp"
-    tools:context=".Frag_TeamList"    >
+    tools:context=".Frag_TeamList">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -19,19 +19,56 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="#C1E8B3"
-                    android:text="Home Team Selection"
+                    android:text="Our Team Selection"
                     android:textAlignment="center"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
-                <!-- Spinner moved above team name input -->
                 <Spinner
                     android:id="@+id/spTeamList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:padding="2dp"
-                    android:text="No Teams Saved"/>
+                    android:text="No Teams Saved" />
+
+                <!-- Horizontal LinearLayout for the three buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnAddNewTeam"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:padding="2dp"
+                        android:text="Create New Team"
+                        android:textSize="12sp"/>
+
+                        <Button
+                            android:id="@+id/btnDeleteCurrentTeam"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="2dp"
+                        android:text="Delete Current"
+                        android:textSize="12sp"/>
+
+                        <Button
+                            android:id="@+id/btnDeleteAllTeams"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:padding="2dp"
+                        android:text="Delete ALL"
+                        android:textSize="12sp"/>
+                </LinearLayout>
 
                 <!-- Team Name Input and Save Button -->
                 <LinearLayout
@@ -46,14 +83,14 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:hint="Team Name"
-                            android:inputType="text"/>
+                            android:inputType="text" />
 
                         <Button
                             android:id="@+id/btnSaveTeam"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="Save Team"/>
+                            android:text="Save Team" />
                 </LinearLayout>
 
                 <!-- Player Names -->
@@ -62,7 +99,7 @@
                     android:layout_height="wrap_content"
                     android:text="Players"
                     android:textStyle="bold"
-                    android:paddingTop="8dp"/>
+                    android:paddingTop="8dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -77,7 +114,7 @@
                             android:padding="2dp"
                             android:hint="Enter Player Name"
                             android:inputType="text"
-                            android:imeOptions="actionDone"/> <!-- Sets the keyboard return key to "Done" -->
+                            android:imeOptions="actionDone" />
 
                         <Button
                             android:id="@+id/btnAddPlayer"
@@ -85,34 +122,15 @@
                             android:layout_height="35dp"
                             android:layout_marginStart="8dp"
                             android:padding="2dp"
-                            android:text="Add Player"/>
+                            android:text="Add Player" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvPlayerNames"
                     android:layout_width="match_parent"
-                    android:layout_height="380dp"
-                    android:scrollbars="vertical"/>
+                    android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="vertical" />
 
-                <Button
-                    android:id="@+id/btnAddNewTeam"
-                    android:layout_width="match_parent"
-                    android:layout_height="35dp"
-                    android:padding="2dp"
-                    android:text="Add New Team"/>
-
-                <Button
-                    android:id="@+id/btnDeleteCurrentTeam"
-                    android:layout_width="match_parent"
-                    android:layout_height="35dp"
-                    android:padding="2dp"
-                    android:text="Delete Current Team"/>
-                <Button
-                    android:id="@+id/btnDeleteAllTeams"
-                    android:layout_width="match_parent"
-                    android:layout_height="35dp"
-                    android:padding="2dp"
-                    android:text="Delete ALL Teams"/>
         </LinearLayout>
-
 </FrameLayout>

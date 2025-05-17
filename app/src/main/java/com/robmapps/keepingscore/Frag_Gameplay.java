@@ -145,8 +145,7 @@ public class Frag_Gameplay extends Fragment {
                 }
             } else {
                 Log.d("GameplayActiveTeamObs", "Active team IS null.");
-                // If no active team, set text to empty (or your default)
-                sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
+                    sTeam1="";
                 tvTeam1.setText(""); // Assuming you want to clear the text if no active team
                 sGSPlayer = null;
                 sGAPlayer = null;

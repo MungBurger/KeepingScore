@@ -303,7 +303,7 @@ public class Frag_TeamList extends Fragment {
             etPlayerName.requestFocus();
             hasUnsavedChanges = true;
 
-            Toast.makeText(getContext(), "Player added: " + playerName + " as " + position, Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getContext(), "Player added: " + playerName + " as " + position, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(getContext(), "Enter a player name!", Toast.LENGTH_SHORT).show();
             etPlayerName.requestFocus();
