@@ -25,13 +25,13 @@ public abstract class AppDatabase extends RoomDatabase { // Ensure AppDatabase i
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
-                    /*INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                                    AppDatabase.class, "netball_database")
-                            .build();*/
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "netball_database")
-                            .fallbackToDestructiveMigration() // Use only during development
                             .build();
+                    /*INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
+                                    AppDatabase.class, "netball_database")
+                            .fallbackToDestructiveMigration() // Use only during development
+                            .build();*/
                 }
             }
         }

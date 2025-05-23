@@ -12,12 +12,8 @@ import java.util.List;
 
 import com.robmapps.keepingscore.database.entities.Team;
 
-
-
 @Dao
 public interface TeamDAO {
-/*    @Query("SELECT * FROM teams")
-    LiveData<List<Team>> getAllTeams(); // Query to fetch all teams*/
     @Update
     void updateTeam(Team team);
     @Query("SELECT * FROM teams")
@@ -37,8 +33,7 @@ public interface TeamDAO {
     @Query("SELECT * FROM teams WHERE id = :teamId")
     LiveData<Team> getTeamById(int teamId);
     @Query("SELECT * FROM teams WHERE teamName = :teamName")
-    LiveData<Team> getTeamByNameLive(String teamName); // Assuming you have this
-    // Add this method to get a team by its ID
+    LiveData<Team> getTeamByNameLive(String teamName);
 
 }
 

@@ -1,5 +1,7 @@
 package com.robmapps.keepingscore;
 
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +19,8 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
 
     private List<Player> playerList;
     private OnPlayerActionListener listener;
-
+    private static Drawable defaultSpinnerBackground;
+    private static int offPositionColor = Color.parseColor("#FFCDD2");
     public PlayerAdapter(List<Player> playerList, OnPlayerActionListener listener) {
         this.playerList = playerList;
         this.listener = listener;
@@ -27,6 +30,13 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
     @Override
     public PlayerViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_player_name, parent, false);
+        PlayerViewHolder holder = new PlayerViewHolder(view);
+
+        // Capture the default spinner background ONCE when the first ViewHolder is created.
+        // This assumes all spinners initially have the same default background.
+        if (defaultSpinnerBackground == null && holder.spPosition != null) {
+            defaultSpinnerBackground = holder.spPosition.getBackground();
+        }
         return new PlayerViewHolder(view);
     }
 
@@ -41,23 +51,31 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
                 Player.POSITIONS);
         holder.spPosition.setAdapter(spinnerAdapter);
         holder.spPosition.setSelection(getPositionIndex(player.getPosition()));
-        // Handle player deletion
-        /*holder.btnDeletePlayer.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onPlayerDeleted(player);
+
+        holder.spPosition.setSelection(getPositionIndex(player.getPosition()), false); // false to not trigger onItemSelected
+
+        // --- Spinner Background Color Logic ---
+        if ("Off".equalsIgnoreCase(player.getPosition())) {
+            holder.spPosition.setBackgroundColor(offPositionColor);
+        } else {
+            if (defaultSpinnerBackground != null) {
+                holder.spPosition.setBackground(defaultSpinnerBackground);
+            } else {
+                // Fallback if defaultSpinnerBackground wasn't captured or is null
+                // This might be a system default and might not match your app's theme perfectly.
+                // For API < 16, use setBackgroundDrawable.
+                holder.spPosition.setBackgroundResource(android.R.drawable.btn_dropdown);
             }
-        });*/
+        }
+
+        // --- Listeners ---
+        // Clear existing listeners to prevent multiple calls on recycled views
+        holder.etPlayerNameItem.setOnFocusChangeListener(null);
+        holder.spPosition.setOnItemSelectedListener(null);
 
         // Handle position change
         holder.spPosition.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            /*public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                String selectedPosition = Player.POSITIONS[pos];
-                player.setPosition(selectedPosition);
-                if (listener != null) {
-                    listener.onPositionChanged(player);
-                }
-            }*/
             public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
                 String selectedPos = Player.POSITIONS[pos];
                 // Only update if the selection actually changed for this player.
@@ -94,7 +112,6 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
     class PlayerViewHolder extends RecyclerView.ViewHolder {
         EditText etPlayerNameItem;
         Spinner spPosition;
-        ImageButton btnDeletePlayer;
 
         public PlayerViewHolder(@NonNull View itemView) {
             super(itemView);

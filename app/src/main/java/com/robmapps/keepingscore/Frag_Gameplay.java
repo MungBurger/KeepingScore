@@ -167,8 +167,7 @@ public class Frag_Gameplay extends Fragment {
                     startY = 180f; //tvScore1.getY() + (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
 
                     endX = startX; // tvScore2.getX() + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
-                    endY = startY + 870f; //+  tvScore2.getY() + (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
-
+                    endY = startY + 900f; //+  tvScore2.getY() + (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
 
                     // Set initial position of the ImageView if not already set by layout
                     ivCentrePassCircle.setX(startX);
@@ -499,12 +498,12 @@ public class Frag_Gameplay extends Fragment {
             public void onFinish() {
                 bTimerRunning=false;
                 viewModel.setGameInProgress(false);
-                iPerNum++;
+                //iPerNum++;
                 if (iPerNum<iNumPers+1) {
                     if(iNumPers==2) {
-                        tvQuarterNum.setText("Next H: " + iPerNum);
+                        tvQuarterNum.setText("End of H: " + iPerNum);
                     } else {
-                        tvQuarterNum.setText("Next Q: " + iPerNum);
+                        tvQuarterNum.setText("End of Q: " + iPerNum);
                     }
                     btnStartGame.setEnabled(true);
                 }else {
@@ -873,6 +872,8 @@ public class Frag_Gameplay extends Fragment {
 // TODO     Use nice pretty icons
 // TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track of player on and off times, and sum up total in-game time
 // TODO     Add players' player (best on court function)
+// TODO     Going from a game-in-progress to Stats and back is fine, but going to TeamList disables the buttons.
+// TODO     Backing out of a game in progress also disables the buttons.
 
 
 

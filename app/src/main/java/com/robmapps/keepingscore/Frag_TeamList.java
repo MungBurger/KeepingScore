@@ -94,16 +94,6 @@ public class Frag_TeamList extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {}
         });
-        /*etPlayerName.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_DONE ||
-                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN)) {
-
-                addPlayer(); // Call the addPlayer method
-                etPlayerName.requestFocus(); // Ensure focus stays on the input field
-                return true; // Consume the action to prevent focus changes
-            }
-            return false; // Allow default behavior otherwise
-        });*/
 
 // Initialize RecyclerView and PlayerAdapter
         playerAdapter = new PlayerAdapter(playerNames, new PlayerAdapter.OnPlayerActionListener() {
@@ -131,7 +121,6 @@ public class Frag_TeamList extends Fragment {
         // Set up the dropdown for team selection
         setupTeamDropdown();
 
-
         viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
             if (activeTeam != null && activeTeam.getPlayers() != null && !activeTeam.getPlayers().isEmpty()) {
                 playerNames.clear();
@@ -142,7 +131,6 @@ public class Frag_TeamList extends Fragment {
                 Log.w("RecyclerViewDebug", "No players found for the active team here either.");
             }
         });
-
 
         viewModel.getTeamsLive().observe(getViewLifecycleOwner(), teams -> {
             List<String> teamNames;
@@ -158,7 +146,6 @@ public class Frag_TeamList extends Fragment {
         });
         return view;
     }
-// In Frag_TeamList.java
 
     private void saveTeam() {
         String teamName = etTeamName.getText().toString().trim();
@@ -167,8 +154,6 @@ public class Frag_TeamList extends Fragment {
             return;
         }
 
-        // Access the current active team from the ViewModel's LiveData
-        // This value is automatically updated by the ViewModel's activeTeam observer.
         Team currentActiveTeam = viewModel.getActiveTeam().getValue();
         Team teamToSave;
 
@@ -177,25 +162,14 @@ public class Frag_TeamList extends Fragment {
             teamToSave = currentActiveTeam;
             teamToSave.setTeamName(teamName);
 
-            // **NEW LOGIC: Iterate RecyclerView to get updated player names for an EXISTING team**
             ArrayList<Player> updatedPlayersFromRV = getPlayersFromRecyclerView();
             teamToSave.setPlayers(updatedPlayersFromRV);
             viewModel.updateTeam(teamToSave);
             Log.d("SaveTeamDebug", "Requested update for existing team: " + teamName);
             Toast.makeText(getContext(), "Team updated!", Toast.LENGTH_SHORT).show();
-            //End new
 
             Log.d("SaveTeamDebug", "Saving existing team: " + teamName + " with ID: " + currentActiveTeam.getId());
             // Update the properties of the existing Team object
-
-
-            //Maybe Remove this bit
-            /*currentActiveTeam.setTeamName(teamName);
-            currentActiveTeam.setPlayers(new ArrayList<>(playerNames));
-            viewModel.updateTeam(currentActiveTeam);
-            Log.d("SaveTeamDebug", "Requested update for existing team: " + teamName);
-            Toast.makeText(getContext(), "Team updated!", Toast.LENGTH_SHORT).show();*/
-            // Maybe remove above
         } else {
             Log.d("SaveTeamDebug", "Saving new team: " + teamName);
             if (currentActiveTeam != null && currentActiveTeam.getTeamName().equals(teamName) && currentActiveTeam.getId() == 0) {
@@ -203,25 +177,12 @@ public class Frag_TeamList extends Fragment {
             } else {
                 teamToSave = new Team(teamName);
             }
-            // **NEW LOGIC: Iterate RecyclerView to get updated player names for a NEW team**
             ArrayList<Player> updatedPlayersFromRV = getPlayersFromRecyclerView();
             teamToSave.setPlayers(updatedPlayersFromRV);
-            // newTeamToSave.setScore(0); // Set default score if needed
+
             viewModel.insertTeam(teamToSave);
             Log.d("SaveTeamDebug", "Requested insert for new team: " + teamName);
             Toast.makeText(getContext(), "New team saved!", Toast.LENGTH_SHORT).show();
-            //End of new code
-
-            // Our old code
-/*            Log.d("SaveTeamDebug", "Saving new team: " + teamName);
-            Team newTeam = new Team(teamName); // Create a new Team object
-            newTeam.setPlayers(new ArrayList<>(playerNames));
-            newTeam.setScore(0); // Assuming a default score for a new team
-
-            viewModel.insertTeam(newTeam);
-            Log.d("SaveTeamDebug", "Requested insert for new team: " + teamName);
-            //viewModel.setActiveTeamName(teamName);
-            Toast.makeText(getContext(), "New team saved!", Toast.LENGTH_SHORT).show();*/
         }
         hasUnsavedChanges = false; // Reset the unsaved changes flag
         updatePlayerControlsState(true);
@@ -242,13 +203,11 @@ public class Frag_TeamList extends Fragment {
                     SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
                     viewModel.deleteTeam(teamName); // Remove the team from the ViewModel
 
-                    // Refresh UI
                     etTeamName.setText("");
                     playerNames.clear();
                     playerAdapter.notifyDataSetChanged();
                     viewModel.setActiveTeamName("");
 
-                    // **Update spinner after deletion**
                     updateSpinner();
 
                     Toast.makeText(getContext(), "Team \"" + teamName + "\" deleted.", Toast.LENGTH_SHORT).show();
@@ -297,13 +256,11 @@ public class Frag_TeamList extends Fragment {
             }
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-
         builder.show();
     }
 
     private void proceedWithAddNewTeam(String teamName) {
 
-        // etTeamName.requestFocus(); // Not strictly necessary now as name is set
         viewModel.setActiveTeam(new Team(teamName));
         playerNames.clear();
         Log.d("TeamListDebug", "proceedWithAddNewTeam: playerNames cleared. Size: " + playerNames.size());
@@ -327,7 +284,6 @@ public class Frag_TeamList extends Fragment {
         }
         Team activeTeam = viewModel.getActiveTeam().getValue();
         activeTeam.setPlayers(new ArrayList<>(playerNames));
-
 
         if (playerAdapter != null) {
             playerAdapter.notifyDataSetChanged();
@@ -374,13 +330,7 @@ public class Frag_TeamList extends Fragment {
                 return pos;
             }
         }
-
-        // If all standard positions are filled, assign further "Sub" positions
-        // You might want a limit on total subs, e.g., up to 3 or 5 total subs.
-        // For this example, if initial 10 players include 3 subs, the 11th could be Sub 4.
         return "Sub"; // Or "Reserve", "Bench"
-        // Or you could count existing "Sub" players and return "Sub " + (count + 1)
-        // For simplicity, just returning "Sub" is fine.
     }
 
     private void updatePlayerNameHint() {
@@ -389,10 +339,7 @@ public class Frag_TeamList extends Fragment {
             int currentPlayers = playerNames.size();
 
             if (currentPlayers >= 10) { // Or a specific limit like Player.POSITIONS.length + 3 subs
-                // All initial 10 spots filled, or more
                 etPlayerName.setHint("Player Name (e.g., Sub)");
-                // Alternatively, disable adding more players if 10 is the hard limit for creation
-                // btnAddPlayer.setEnabled(false);
             } else if (nextPos.equalsIgnoreCase("Sub")) {
                 etPlayerName.setHint("Enter Name (Sub)");
             }
@@ -412,12 +359,9 @@ public class Frag_TeamList extends Fragment {
                     // Delete persisted teams from the database.
                     viewModel.deleteAllTeams();
                     playerNames.clear();
-                    // Clear the in-memory teams map if your UI depends on it.
+
                     viewModel.setTeams(new HashMap<>());
-
-                    // Optionally refresh the UI (e.g., update the spinner).
                     updateSpinner();
-
                     Toast.makeText(getContext(), "All Teams deleted.", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> {
@@ -425,41 +369,6 @@ public class Frag_TeamList extends Fragment {
                 })
                 .show();
     }
-/*    private void addPlayer() {
-        String playerName = etPlayerName.getText().toString().trim();
-        if (!playerName.isEmpty()) {
-            // Determine position for the new player
-            List<String> occupiedPositions = new ArrayList<>();
-            for (Player player : playerNames) {
-                occupiedPositions.add(player.getPosition());
-            }
-
-            String position = "Off";
-            for (String pos : Player.POSITIONS) {
-                if (!occupiedPositions.contains(pos)) {
-                    position = pos;
-                    break;
-                }
-            }
-
-            // Add the new player
-            Player newPlayer = new Player(playerName, position);
-            playerNames.add(newPlayer);
-
-            // Notify the adapter of the change
-            playerAdapter.notifyDataSetChanged();
-
-            // Reset the input field
-            etPlayerName.setText("");
-            etPlayerName.requestFocus();
-            hasUnsavedChanges = true;
-
-            //Toast.makeText(getContext(), "Player added: " + playerName + " as " + position, Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(getContext(), "Enter a player name!", Toast.LENGTH_SHORT).show();
-            etPlayerName.requestFocus();
-        }
-    }*/
 
     public interface OnTeamActionListener {
         void onTeamSaved(String teamName, ArrayList<String> playerNames);
@@ -471,37 +380,11 @@ public class Frag_TeamList extends Fragment {
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
         viewModel.setActiveTeamName(teamName);
 
-        // Display a Toast message in the Fragment
         Toast.makeText(requireContext(), "Active team set to: " + teamName, Toast.LENGTH_SHORT).show();
     }
 
     private void setupTeamDropdown() {
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
-
-/*        viewModel.getTeams().observe(getViewLifecycleOwner(), teams -> {
-            if (teams != null && !teams.isEmpty()) {
-                // Convert team keys to a list for the adapter
-                List<String> teamNames = new ArrayList<>(teams.keySet());
-
-                // Initialize the ArrayAdapter
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        requireContext(), // Use requireContext() for a valid context
-                        android.R.layout.simple_spinner_dropdown_item, // Default dropdown layout
-                        teamNames
-                );
-                // Set the adapter to the Spinner
-                spTeamList.setAdapter(adapter);
-                // Manually set the selection to match the active team
-                String activeTeam = viewModel.getActiveTeamName().getValue();
-                if (activeTeam != null) {
-                    int position = adapter.getPosition(activeTeam);
-                    spTeamList.setSelection(position);
-                }
-            } else {
-                spTeamList.setAdapter(null); // Clear the dropdown if no teams exist
-                //Toast.makeText(requireContext(), "No teams available", Toast.LENGTH_SHORT).show();
-            }
-        });*/
 
         // Observe the active team LiveData to update the UI when it changes
         viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
@@ -527,7 +410,6 @@ public class Frag_TeamList extends Fragment {
                 Log.w("RecyclerViewDebug", "No players found for the active team.");
             }
         });
-
 
         spTeamList.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -573,50 +455,23 @@ public class Frag_TeamList extends Fragment {
         if (btnAddPlayer != null) {
             btnAddPlayer.setEnabled(enabled);
         }
-        // Optionally change appearance, e.g., alpha
-        // float alpha = enabled ? 1.0f : 0.5f;
-        // if (etPlayerName != null) etPlayerName.setAlpha(alpha);
-        // if (btnAddPlayer != null) btnAddPlayer.setAlpha(alpha);
     }
     private ArrayList<Player> getPlayersFromRecyclerView() {
         ArrayList<Player> playersFromRV = new ArrayList<>();
         if (playerAdapter == null || rvPlayerNames == null) { // rvPlayerList is your RecyclerView instance
             Log.e("SaveTeamDebug", "getPlayersFromRecyclerView: Adapter or RecyclerView is null");
-            // Fallback: return the original playerNames list if UI cannot be accessed
-            // This might happen if save is called when view is not fully available.
-            // Consider if `this.playerNames` (the original list) is a better fallback or an empty list.
             return new ArrayList<>(this.playerNames); // Or new ArrayList<>();
         }
-
-        // Iterate through the items currently managed by the adapter.
-        // This assumes the adapter's internal list (`playerList` in PlayerAdapter)
-        // has the same size and order as what's potentially visible
-        // and that its Player objects still hold the original positions.
 
         for (int i = 0; i < playerAdapter.getItemCount(); i++) {
             PlayerAdapter.PlayerViewHolder viewHolder = (PlayerAdapter.PlayerViewHolder) rvPlayerNames.findViewHolderForAdapterPosition(i);
             Player originalPlayer = playerAdapter.getPlayerAt(i); // Need a method in adapter to get Player at position
 
             if (viewHolder != null) {
-                // View is visible and recycled, get text directly from EditText
                 String editedName = viewHolder.etPlayerNameItem.getText().toString();
                 String position = originalPlayer.getPosition(); // Get original position
                 playersFromRV.add(new Player(editedName, position));
             } else {
-                // View is not visible (scrolled off-screen).
-                // This is the tricky part. If the adapter doesn't update its internal list,
-                // we can't reliably get the edited text for off-screen items.
-                // THIS APPROACH HAS A MAJOR FLAW FOR OFF-SCREEN ITEMS if adapter's list isn't updated.
-
-                // To SOLVE the off-screen issue IF PlayerAdapter's list ISN'T updated:
-                // This entire getPlayersFromRecyclerView() approach is flawed if PlayerAdapter's
-                // playerList is not the single source of truth for names.
-
-                // *** PREFERRED REVISED STRATEGY (see point 6 below) ***
-                // For now, let's assume we can get the original player and if it wasn't visible,
-                // we assume its name didn't change (which might be wrong).
-                // OR, better, PlayerAdapter *should* update its internal list but just not
-                // propagate it back to Frag_TeamList's original playerNames list until save.
                 Log.w("SaveTeamDebug", "ViewHolder not found for position " + i + ". Using original name for player: " + originalPlayer.getName());
                 playersFromRV.add(new Player(originalPlayer.getName(), originalPlayer.getPosition())); // Fallback to original, might be incorrect
             }
