@@ -5,7 +5,7 @@ public class Player {
     private String position;
     private long timeOnCourt; // Total time on court in milliseconds
     private long lastEntryTime; // Timestamp of when the player last entered
-    public static final String[] POSITIONS = {"GS", "GA", "WA", "C","WD", "GD", "GK",  "Off"};
+    public static final String[] POSITIONS = {"GS", "GA", "WA", "C","WD", "GD", "GK",  "Off",  "Off",  "Off",  "Off"};
 
 
     public Player(String name, String position) {

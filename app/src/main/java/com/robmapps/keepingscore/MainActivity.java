@@ -27,7 +27,6 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         List<Fragment> fragments = fragmentManager.getFragments();
         boolean noActiveFragments = true; // Assume no active fragments initially\
 
-
         // Register the back press callback
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override

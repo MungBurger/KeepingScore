@@ -42,11 +42,11 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
         holder.spPosition.setAdapter(spinnerAdapter);
         holder.spPosition.setSelection(getPositionIndex(player.getPosition()));
         // Handle player deletion
-        holder.btnDeletePlayer.setOnClickListener(v -> {
+        /*holder.btnDeletePlayer.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onPlayerDeleted(player);
             }
-        });
+        });*/
 
         // Handle position change
         holder.spPosition.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -91,7 +91,7 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
         return playerList.size();
     }
 
-    static class PlayerViewHolder extends RecyclerView.ViewHolder {
+    class PlayerViewHolder extends RecyclerView.ViewHolder {
         EditText etPlayerNameItem;
         Spinner spPosition;
         ImageButton btnDeletePlayer;
@@ -100,10 +100,23 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
             super(itemView);
             etPlayerNameItem = itemView.findViewById(R.id.etPlayerNameItem);
             spPosition = itemView.findViewById(R.id.spPosition);
-            btnDeletePlayer = itemView.findViewById(R.id.btnDeletePlayer);
+            //btnDeletePlayer = itemView.findViewById(R.id.btnDeletePlayer);
+            // New Below
+            etPlayerNameItem.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus && getAdapterPosition() != RecyclerView.NO_POSITION) {
+                    Player player = playerList.get(getAdapterPosition());
+                    player.setName(((EditText) v).getText().toString());
+                }
+            });
+            //New Above
         }
     }
-
+    public Player getPlayerAt(int position) {
+        if (playerList != null && position >= 0 && position < playerList.size()) {
+            return playerList.get(position);
+        }
+        return null; // Or throw exception
+    }
     private int getPositionIndex(String position) {
         for (int i = 0; i < Player.POSITIONS.length; i++) {
             if (Player.POSITIONS[i].equals(position)) {

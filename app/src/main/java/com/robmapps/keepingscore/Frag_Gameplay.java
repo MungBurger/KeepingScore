@@ -55,13 +55,13 @@ public class Frag_Gameplay extends Fragment {
     public long TimeMultiplier;
     public String sScore1, timeFormatted,sTeam1,sTeam2, StatsFileName,sGSPlayer,sGAPlayer,sCurrMode;
     public Boolean bTimerRunning=false, bDebugMode=false;
-    public Button btnShowStats, btnStartGame, btnBestOnCourt, btnUndo,btnGameMode,btnReset;
+    public Button btnShowStats, btnStartGame, btnBestOnCourt, btnUndo,btnGameMode,btnReset, btnTeamList;
     public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M;
     public SharedPreferences spSavedValues;
     public CountDownTimer cdEndofPeriodTimer;
     public StringBuilder sAllActions;
     private SharedViewModel viewModel;
-    private ImageView movingImageView;
+    private ImageView ivCentrePassCircle;
     private ObjectAnimator animatorX, animatorY; // To control the animation
     private boolean movingToEndLocation = true; // To track animation direction
     private float startX, startY, endX, endY;   // Coordinates for movement
@@ -89,7 +89,7 @@ public class Frag_Gameplay extends Fragment {
         tvTimeRem = view.findViewById(R.id.TimeRem);
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
         btnGameMode = view.findViewById(R.id.GameMode);
-        movingImageView = view.findViewById(R.id.centrePassCircle);
+        ivCentrePassCircle = view.findViewById(R.id.centrePassCircle);
 
         sCurrMode =viewModel.getGameMode().getValue().toString();
         //sCurrMode="15m,4Q"; // Default game mode
@@ -160,22 +160,22 @@ public class Frag_Gameplay extends Fragment {
                 view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 if (tvScore1.getWidth() == 0 || tvScore1.getHeight() == 0 ||
                         tvScore2.getWidth() == 0 || tvScore2.getHeight() == 0 || // <<< CHECK THIS
-                        movingImageView.getWidth() == 0 || movingImageView.getHeight() == 0) {
+                        ivCentrePassCircle.getWidth() == 0 || ivCentrePassCircle.getHeight() == 0) {
 
                     // Define Start Location (e.g., left side of screen, middle vertically)
-                    startX = 5f;// tvScore1.getX() ;//+ (tvScore1.getWidth() / 2f) - (movingImageView.getWidth() );
-                    startY = tvScore1.getY() + (tvScore1.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
+                    startX = 1f ;//tvScore1.getX() ;//+ (tvScore1.getWidth() / 2f) - (movingImageView.getWidth() );
+                    startY = 180f; //tvScore1.getY() + (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
 
-                    endX = startX; // tvScore2.getX() + (tvScore2.getWidth() / 2f) - (movingImageView.getWidth() / 2f);
-                    endY = startY + 870f; // tvScore2.getY() + (tvScore2.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
+                    endX = startX; // tvScore2.getX() + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+                    endY = startY + 870f; //+  tvScore2.getY() + (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
+
 
                     // Set initial position of the ImageView if not already set by layout
-                    movingImageView.setX(startX);
-                    movingImageView.setY(startY);
+                    ivCentrePassCircle.setX(startX);
+                    ivCentrePassCircle.setY(startY);
                 }
             }
         });
-        // --- ADD THIS NEW OBSERVATION FOR TEAM 2 NAME ---
         // Observe Team 2 name from the ViewModel's SavedStateHandle
         viewModel.getTeam2Name().observe(getViewLifecycleOwner(), team2Name -> {
             Log.d("GameplayTeam2Observer", "Team 2 name observed: " + team2Name);
@@ -183,7 +183,6 @@ public class Frag_Gameplay extends Fragment {
             // This prevents an infinite loop caused by the TextWatcher
             if (!etTeam2.getText().toString().equals(team2Name)) {
                 etTeam2.setText(team2Name); // Set the EditText text
-                // Note: updateGameTitle() will be called by the TextWatcher after setText()
             }
         });
 
@@ -212,6 +211,7 @@ public class Frag_Gameplay extends Fragment {
         btnGA2.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", "Other",true);        });
         btnGS2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GS2", "Other",false);        });
         btnGA2M.setOnClickListener(v -> {            incrementScore(viewModel, tvScore2, "GA2", "Other",false);        });
+        btnTeamList=view.findViewById(R.id.btnTeamsLists);
 
         view.findViewById(R.id.Team1Score).setOnClickListener(v -> {
             viewModel.swapCentrePass();
@@ -344,7 +344,7 @@ public class Frag_Gameplay extends Fragment {
             viewModel.swapCentrePass();
         }
         String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-        String ssuccess=new String();
+        String ssuccess;
         if (isSuccessful){
             ssuccess="Goal";
         } else {
@@ -362,7 +362,6 @@ public class Frag_Gameplay extends Fragment {
         sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
         viewModel.recordAttempt(playerPosition, isSuccessful, timestamp);
     }
-
     private void undoLastAction(SharedViewModel viewModel) {
         List<ScoringAttempt> currentActions = viewModel.getAllActions().getValue();
         if (currentActions != null && !currentActions.isEmpty()) {
@@ -433,7 +432,6 @@ public class Frag_Gameplay extends Fragment {
         Log.d("GameVariables", "Game Mode (SVM) = " + viewModel.getGameMode().getValue()); // Log when observer is triggered
     }
     public boolean GameModeDebug(){
-        //Toast.makeText(MainActivity.this,"Debug mode",Toast.LENGTH_SHORT).show();
         sCurrMode="01m,2H";
         iPerDuration=1;iNumPers=2;
         btnGameMode.setText(sCurrMode);
@@ -444,8 +442,11 @@ public class Frag_Gameplay extends Fragment {
         return true;
     }
     private void startGameTimer() {
+        //findTVLocations();
+
         if (bTimerRunning) {
             Toast.makeText(requireContext(), "Game Timer is already running!", Toast.LENGTH_SHORT).show();
+            btnStartGame.setEnabled(false);
             return;
         }
         btnGS1.setText("GS" + "\n"+sGSPlayer);
@@ -454,30 +455,35 @@ public class Frag_Gameplay extends Fragment {
         btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
         sCurrMode = btnGameMode.getText().toString();
 
+        Toast.makeText(requireContext(), "tvScore2.getY() = "+ (int) (tvScore2.getY() ), Toast.LENGTH_SHORT).show();
+        //endY =tvScore2.getY() + (tvScore2.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
+
+        if (iPerNum<1) {iPerNum++;}
         viewModel.setGameInProgress(true);
-        viewModel.setCurrentPeriod(1);
+        viewModel.setCurrentPeriod(iPerNum);
 
         parseGameMode(); // Ensure period duration and number of periods are set
         // Start the timer service
         Intent intent = new Intent(requireContext(), TimerService.class);
         intent.putExtra("PERIOD_DURATION", iPerDuration); // Pass the period duration
         intent.putExtra("TOTAL_PERIODS", iNumPers);       // Pass the total number of periods
-        intent.putExtra("CURRENT_PERIOD", 1);            // Start with the first period
+        intent.putExtra("CURRENT_PERIOD", iPerNum);            // Start with the first period
         requireContext().startService(intent);
 
-        bTimerRunning = true; // Set the timer state to running
+        btnStartGame.setEnabled(false);bTimerRunning = true; // Set the timer state to running
         Toast.makeText(requireContext(), "Game Timer Started!", Toast.LENGTH_SHORT).show();
-        btnGameMode.setEnabled(false);btnStartGame.setEnabled(false);
-        movingImageView.setVisibility(View.VISIBLE);
+        btnGameMode.setEnabled(false);
+        ivCentrePassCircle.setVisibility(View.VISIBLE);
     }
     private void EndOfPeriodTimer(){
         tvTimeRem.setTextColor(Color.rgb(255,150,0));
         if (bDebugMode){
-            TimeMultiplier=6000;
+            TimeMultiplier=10000;
         } else {
             TimeMultiplier=60000;
         }
-        iPerNum++;
+
+
         cdEndofPeriodTimer = new CountDownTimer(TimeMultiplier /3, 1000) { /* x minutes countdown after normal period is ended, until buttons are disabled.*/
             @Override
             public void onTick(long millisUntilFinished) {
@@ -493,7 +499,18 @@ public class Frag_Gameplay extends Fragment {
             public void onFinish() {
                 bTimerRunning=false;
                 viewModel.setGameInProgress(false);
-
+                iPerNum++;
+                if (iPerNum<iNumPers+1) {
+                    if(iNumPers==2) {
+                        tvQuarterNum.setText("Next H: " + iPerNum);
+                    } else {
+                        tvQuarterNum.setText("Next Q: " + iPerNum);
+                    }
+                    btnStartGame.setEnabled(true);
+                }else {
+                    tvQuarterNum.setText("Game Over");
+                    btnStartGame.setEnabled(false);
+                }
                 btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
                 btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
             }
@@ -533,12 +550,18 @@ public class Frag_Gameplay extends Fragment {
                     tvTimeRem.setTextColor(Color.BLACK); // Default color
                 }
                 tvTimeRem.setText(timeFormatted);
-                // Update the quarter number
-                tvQuarterNum.setText("Quarter: " + currentPeriod);
+
+                //tvQuarterNum.setText("Quarter: " + currentPeriod);
+
+                if(iNumPers==2) {
+                    tvQuarterNum.setText("Half:\n" + currentPeriod);
+                } else {
+                    tvQuarterNum.setText("Quarter:\n" + currentPeriod);
+                }
             } else if ("END_OF_PERIOD_ACTION".equals(action)) {
                 int currentPeriod = intent.getIntExtra("CURRENT_PERIOD", 1);
-                int totalPeriods = intent.getIntExtra("TOTAL_PERIODS", 4);
-                btnStartGame.setEnabled(true);
+                int iNumPers = intent.getIntExtra("TOTAL_PERIODS", 4);
+                //btnStartGame.setEnabled(true);
                 // Trigger UI updates or alerts for end of period
                 Toast.makeText(context, "Period " + currentPeriod + " has ended.", Toast.LENGTH_SHORT).show();
                 EndOfPeriodTimer();
@@ -563,7 +586,7 @@ public class Frag_Gameplay extends Fragment {
         sGAPlayer=spSavedValues.getString("sGAPlayer",sGAPlayer);
 
         viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",false));
-        viewModel.setGameMode(spSavedValues.getString("GameMode","15m,4H"));
+        viewModel.setGameMode(spSavedValues.getString("GameMode","15m,4Q"));
         viewModel.setCurrentPeriod(spSavedValues.getInt("CurrPeriod",1));
 
         sAllActions.setLength(0);
@@ -721,44 +744,97 @@ public class Frag_Gameplay extends Fragment {
         }
     }
 
-@Override
-public void onDestroyView() {
-    super.onDestroyView();
-    requireContext().unregisterReceiver(timerReceiver);
-}
-private String formatTime(long timeInMillis) {
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        requireContext().unregisterReceiver(timerReceiver);
+    }
+    private String formatTime(long timeInMillis) {
     long seconds = (timeInMillis / 1000) % 60;
     long minutes = (timeInMillis / (1000 * 60)) % 60;
     return String.format("%02d:%02d", minutes, seconds);
 }
-
-
-    private void startImageAnimation() {
-        if (movingImageView == null || endX == 0) { // Check if view and coordinates are ready
+/*    private void findTVLocations(){
+        if (ivCentrePassCircle != null) {
+            ivCentrePassCircle.post(() -> {
+                // Call the method that does the actual work
+                calculateAndSetAnimationPositions();
+            });
+        } else if (getView() != null) {
+            // Fallback to posting on the fragment's root view if ivCentrePassCircle is unexpectedly null
+            getView().post(() -> {
+                Log.w("Locations", "ivCentrePassCircle was null, posted on fragment's root view instead.");
+                calculateAndSetAnimationPositions();
+            });
+        } else {
+            Log.e("Locations", "Cannot post findTVLocations logic: ivCentrePassCircle and fragment's view are null.");
+            Toast.makeText(getContext(), "Error preparing animation paths.", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void calculateAndSetAnimationPositions() {
+        // Double-check that views are not null (they should have been found in onViewCreated)
+        if (tvScore1 == null || tvScore2 == null || ivCentrePassCircle == null) {
+            Log.e("Locations", "One or more views are null in calculateAndSetAnimationPositions.");
+            Toast.makeText(getContext(), "Animation view error.", Toast.LENGTH_SHORT).show();
             return;
         }
-        movingImageView.setVisibility(View.VISIBLE);
+
+        // Now, get the values. They *should* be correct here.
+        float tvScore1X = tvScore1.getX();
+        float tvScore1Y = tvScore1.getY();
+        float tvScore1Height = tvScore1.getHeight();
+        // float tvScore1Width = tvScore1.getWidth(); // If needed later
+
+        float tvScore2X = tvScore2.getX(); // Get X for tvScore2 as well
+        float tvScore2Y = tvScore2.getY();
+        float tvScore2Height = tvScore2.getHeight();
+        // float tvScore2Width = tvScore2.getWidth(); // If needed later
+
+        float movingImageHeight = ivCentrePassCircle.getHeight();
+        float movingImageWidth = ivCentrePassCircle.getWidth(); // Get width for potential X calculations
+
+        // Log the raw values obtained after post
+        Log.d("Locations", "POSTED VALUES ---");
+        Log.d("Locations", "tvScore1 - X: " + tvScore1X + ", Y: " + tvScore1Y + ", W: " + tvScore1.getWidth() + ", H: " + tvScore1Height);
+        Log.d("Locations", "tvScore2 - X: " + tvScore2X + ", Y: " + tvScore2Y + ", W: " + tvScore2.getWidth() + ", H: " + tvScore2Height);
+        Log.d("Locations", "ivCentrePassCircle - W: " + movingImageWidth + ", H: " + movingImageHeight);
+        Log.d("Locations", "--- END POSTED VALUES");
+
+        // Check if any critical dimension is still zero (as a safeguard)
+        if (tvScore1Height == 0 || tvScore2Height == 0 || movingImageHeight == 0 || movingImageWidth == 0) {
+            Log.e("Locations", "Critical dimension is zero even after post. " +
+                    "tvS1H: " + tvScore1Height + ", tvS2H: " + tvScore2Height +
+                    ", imgW: " + movingImageWidth + ", imgH: " + movingImageHeight);
+            Toast.makeText(getContext(), "Layout error, cannot determine animation paths.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+    }*/
+    private void startImageAnimation() {
+        if (ivCentrePassCircle == null || endX == 0) { // Check if view and coordinates are ready
+            return;
+        }
+        ivCentrePassCircle.setVisibility(View.VISIBLE);
 
         // Determine target coordinates based on the current direction
         float targetX = movingToEndLocation ? endX : startX;
         float targetY = movingToEndLocation ? endY : startY; // If Y also changes
 
         // Animate X position
-        animatorX = ObjectAnimator.ofFloat(movingImageView, "translationX", movingImageView.getTranslationX(), targetX - movingImageView.getLeft());
-        animatorX = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
-        animatorX.setDuration(500);
+        animatorX = ObjectAnimator.ofFloat(ivCentrePassCircle, "translationX", ivCentrePassCircle.getTranslationX(), targetX - ivCentrePassCircle.getLeft());
+        animatorX = ObjectAnimator.ofFloat(ivCentrePassCircle, "translationY", ivCentrePassCircle.getTranslationY(), targetY - ivCentrePassCircle.getTop());
+        animatorX.setDuration(300);
 
         animatorX.setInterpolator(new AccelerateDecelerateInterpolator()); // No cast needed if using android.view.animation.AccelerateDecelerateInterpolator
 
         // If you also want to animate Y position:
-        // animatorY = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
-        // animatorY.setDuration(2000);
-        // animatorY.setInterpolator(new AccelerateDecelerateInterpolator());
+         /*animatorY = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
+         animatorY.setDuration(300);
+         animatorY.setInterpolator(new AccelerateDecelerateInterpolator());*/
 
         animatorX.addListener((Animator.AnimatorListener) new MyAnimatorListenerAdapter());
 
         animatorX.start();
-        // if (animatorY != null) animatorY.start(); // Start Y animator if used
+        //if (animatorY != null) animatorY.start(); // Start Y animator if used
     }
 
     private void stopImageAnimation() {
@@ -767,11 +843,11 @@ private String formatTime(long timeInMillis) {
             animatorX.cancel();
             animatorX = null;
         }
-        if (animatorY != null) {
-            // animatorY.removeAllListeners();
+/*        if (animatorY != null) {
+            animatorY.removeAllListeners();
             animatorY.cancel();
             animatorY = null;
-        }
+        }*/
         // Optional: Hide the image when animation stops
         // if (movingImageView != null) {
         //     movingImageView.setVisibility(View.GONE);
@@ -786,9 +862,9 @@ private String formatTime(long timeInMillis) {
             movingToEndLocation = !movingToEndLocation;
             // Start animation in the opposite direction
             // Check if the fragment is still added to prevent crashes if fragment is destroyed
-            if (isAdded()) {
-                //startImageAnimation();
-            }
+          /*  if (isAdded()) {
+                startImageAnimation();
+            }*/
         }
     }
 }
