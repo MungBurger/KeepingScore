@@ -1,5 +1,6 @@
 package com.robmapps.keepingscore;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
@@ -38,7 +39,10 @@ import com.robmapps.keepingscore.database.entities.GameStats;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import android.content.ContentValues;
@@ -47,6 +51,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import java.io.OutputStream;
+import java.util.Map;
+import java.util.Set;
 
 public class Frag_Gameplay extends Fragment {
     public TextView tvScore1, tvScore2, tvTimeRem,tvGameTitle, tvQuarterNum,tvTeam1;
@@ -59,13 +65,14 @@ public class Frag_Gameplay extends Fragment {
     public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M;
     public SharedPreferences spSavedValues;
     public CountDownTimer cdEndofPeriodTimer;
-    public StringBuilder sAllActions;
+    public StringBuilder sAllActions,sbExportStats;
     private SharedViewModel viewModel;
     private ImageView ivCentrePassCircle;
     private ObjectAnimator animatorX, animatorY; // To control the animation
     private boolean movingToEndLocation = true; // To track animation direction
     private float startX, startY, endX, endY;   // Coordinates for movement
 
+    @SuppressLint("MissingInflatedId")
     @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_gameplay, container, false);
@@ -104,10 +111,12 @@ public class Frag_Gameplay extends Fragment {
             btnGS1.setEnabled(true);btnGA1.setEnabled(true);btnGS1M.setEnabled(true);btnGA1M.setEnabled(true);
             btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
             btnGameMode.setEnabled(false);
+            bTimerRunning=true;
         }else{
             btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
             btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
             btnGameMode.setEnabled(true);
+            bTimerRunning=false;
         }
 
         // Observe Active Team Name
@@ -192,13 +201,7 @@ public class Frag_Gameplay extends Fragment {
         viewModel.getTeam2Score().observe(getViewLifecycleOwner(), score -> {
             tvScore2.setText(String.valueOf(score));
         });
-/*        viewModel.getGameTimer().observe(getViewLifecycleOwner(), time -> {
-            gameTimer.setText(time);
-        });
-        viewModel.getCurrentQuarter().observe(getViewLifecycleOwner(), quarter -> {
-            quarterNum.setText("Quarter: " + quarter);
-        });
-*/
+
 
         // Set listeners for Team 1 buttons
         btnGS1.setOnClickListener(v -> {            incrementScore(viewModel, tvScore1, "GS1", sGSPlayer,true);        });
@@ -285,6 +288,7 @@ public class Frag_Gameplay extends Fragment {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 iScore1 = 0; iScore2 = 0;
+                viewModel.resetGame();
                 iGS1 = 0;
                 iGA1 = 0;
                 iGS1M = 0;
@@ -297,13 +301,14 @@ public class Frag_Gameplay extends Fragment {
                 btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
                 btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
                 sAllActions.setLength(0);
-                if (bTimerRunning) {
+                if (viewModel.getGameInProgress().getValue()==true) {
+                    viewModel.setGameInProgress(false);
                     Intent stopIntent = new Intent(requireContext(), TimerService.class);
                     requireContext().stopService(stopIntent); // Stop the service
                     bTimerRunning = false; // Update the flag
                     Toast.makeText(requireContext(), "Game Timer stopped.", Toast.LENGTH_SHORT).show();
                 } else {
-                    // Toast.makeText(requireContext(), "Game Timer isn't running", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Game Timer isn't running", Toast.LENGTH_SHORT).show();
                 }
                 if (cdEndofPeriodTimer == null) {
                     //Timer doesn't exist, or isn't running
@@ -355,7 +360,7 @@ public class Frag_Gameplay extends Fragment {
             if(playerPosition=="GA1"){
                 playerName=sGAPlayer;
             } else {
-            playerName="Ohers";
+            playerName="Other Team";
             }
         }
         sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
@@ -443,19 +448,17 @@ public class Frag_Gameplay extends Fragment {
     private void startGameTimer() {
         //findTVLocations();
 
-        if (bTimerRunning) {
+        if (viewModel.getGameInProgress().getValue()==true) {
             Toast.makeText(requireContext(), "Game Timer is already running!", Toast.LENGTH_SHORT).show();
             btnStartGame.setEnabled(false);
             return;
         }
-        btnGS1.setText("GS" + "\n"+sGSPlayer);
-        btnGA1.setText("GA" + "\n"+sGAPlayer);
+
         btnGS1.setEnabled(true);btnGA1.setEnabled(true);btnGS1M.setEnabled(true);btnGA1M.setEnabled(true);
         btnGS2.setEnabled(true);btnGA2.setEnabled(true);btnGS2M.setEnabled(true);btnGA2M.setEnabled(true);
+        btnGS1.setText("GS" + "\n"+sGSPlayer);
+        btnGA1.setText("GA" + "\n"+sGAPlayer);
         sCurrMode = btnGameMode.getText().toString();
-
-        Toast.makeText(requireContext(), "tvScore2.getY() = "+ (int) (tvScore2.getY() ), Toast.LENGTH_SHORT).show();
-        //endY =tvScore2.getY() + (tvScore2.getHeight() / 2f) - (movingImageView.getHeight() / 2f);
 
         if (iPerNum<1) {iPerNum++;}
         viewModel.setGameInProgress(true);
@@ -492,6 +495,7 @@ public class Frag_Gameplay extends Fragment {
                 timeFormatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
 
                 tvTimeRem.setText(""+timeFormatted);
+                viewModel.setGameInProgress(true);
                 bTimerRunning=true;
             }
             @Override
@@ -502,8 +506,10 @@ public class Frag_Gameplay extends Fragment {
                 if (iPerNum<iNumPers+1) {
                     if(iNumPers==2) {
                         tvQuarterNum.setText("End of H: " + iPerNum);
+                        sAllActions.append("\n------- End of H: " + iPerNum + "--------");
                     } else {
                         tvQuarterNum.setText("End of Q: " + iPerNum);
+                        sAllActions.append("\n------- End of Q: " + iPerNum + "--------");
                     }
                     btnStartGame.setEnabled(true);
                 }else {
@@ -512,6 +518,7 @@ public class Frag_Gameplay extends Fragment {
                 }
                 btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
                 btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
+
             }
         }.start();
     }
@@ -560,37 +567,12 @@ public class Frag_Gameplay extends Fragment {
             } else if ("END_OF_PERIOD_ACTION".equals(action)) {
                 int currentPeriod = intent.getIntExtra("CURRENT_PERIOD", 1);
                 int iNumPers = intent.getIntExtra("TOTAL_PERIODS", 4);
-                //btnStartGame.setEnabled(true);
-                // Trigger UI updates or alerts for end of period
                 Toast.makeText(context, "Period " + currentPeriod + " has ended.", Toast.LENGTH_SHORT).show();
                 EndOfPeriodTimer();
             }
         }
     };
     @Override
-    public void onResume() {
-        super.onResume();
-        spSavedValues = requireContext().getSharedPreferences("MySharedPref", Context.MODE_PRIVATE);
-        iGS1 = spSavedValues.getInt("iGS1",0);
-        iGA1 = spSavedValues.getInt("iGA1",0);
-        iGS1M = spSavedValues.getInt("iGS1M",0);
-        iGA1M = spSavedValues.getInt("iGA1M",0);
-        iGS2 = spSavedValues.getInt("iGS2",0);
-        iGA2 = spSavedValues.getInt("iGA2",0);
-        iGS2M = spSavedValues.getInt("iGS2M",0);
-        iGA2M = spSavedValues.getInt("iGA2M",0);
-        sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
-        sTeam2=spSavedValues.getString("etTeam2",sTeam2);
-        sGSPlayer=spSavedValues.getString("sGSPlayer",sGSPlayer);
-        sGAPlayer=spSavedValues.getString("sGAPlayer",sGAPlayer);
-
-        viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",false));
-        viewModel.setGameMode(spSavedValues.getString("GameMode","15m,4Q"));
-        viewModel.setCurrentPeriod(spSavedValues.getInt("CurrPeriod",1));
-
-        sAllActions.setLength(0);
-        sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
-    }
     public void onPause() {
         super.onPause();
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -616,8 +598,8 @@ public class Frag_Gameplay extends Fragment {
 
         spEditor.putString("sAllActions",sAllActions.toString());
 
-        spEditor.putBoolean("GameInProgress",viewModel.getGameInProgress().getValue());
-        spEditor.putString("GameMode",viewModel.getGameMode().getValue());
+        spEditor.putBoolean("GameInProgress", viewModel.getGameInProgress().getValue());
+        spEditor.putString("GameMode", viewModel.getGameMode().getValue());
         spEditor.putString("CurrPeriod", String.valueOf(viewModel.getCurrentPeriod().getValue()));
 
         GameStats stats = new GameStats(
@@ -634,6 +616,38 @@ public class Frag_Gameplay extends Fragment {
             db.gameStatsDao().insertGameStats(stats);
         }).start();
     }
+    @Override
+    public void onResume() {
+        super.onResume();
+        spSavedValues = requireContext().getSharedPreferences("MySharedPref", Context.MODE_PRIVATE);
+        iGS1 = spSavedValues.getInt("iGS1",0);
+        iGA1 = spSavedValues.getInt("iGA1",0);
+        iGS1M = spSavedValues.getInt("iGS1M",0);
+        iGA1M = spSavedValues.getInt("iGA1M",0);
+        iGS2 = spSavedValues.getInt("iGS2",0);
+        iGA2 = spSavedValues.getInt("iGA2",0);
+        iGS2M = spSavedValues.getInt("iGS2M",0);
+        iGA2M = spSavedValues.getInt("iGA2M",0);
+        sTeam1=spSavedValues.getString("tvTeam1",sTeam1);
+        sTeam2=spSavedValues.getString("etTeam2",sTeam2);
+        sGSPlayer=spSavedValues.getString("sGSPlayer",sGSPlayer);
+        sGAPlayer=spSavedValues.getString("sGAPlayer",sGAPlayer);
+
+        viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",viewModel.getGameInProgress().getValue()));
+        viewModel.setGameMode(spSavedValues.getString("GameMode",viewModel.getGameMode().getValue()));
+        viewModel.setCurrentPeriod(spSavedValues.getInt("CurrPeriod",1));
+
+        bTimerRunning=viewModel.getGameInProgress().getValue();
+
+        sAllActions.setLength(0);
+        sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
+        if (viewModel.getGameMode().getValue()!=""){
+            btnGameMode.setText(viewModel.getGameMode().getValue());
+        }else{
+            btnGameMode.setText("15m,4Q");
+        }
+    }
+
     private void exportGameStats(String fileName, String sAllActions) {
         OutputStream fos = null; // Use OutputStream
         Uri uri = null;
@@ -665,6 +679,36 @@ public class Frag_Gameplay extends Fragment {
 
             fos = requireContext().getContentResolver().openOutputStream(uri);
             if (fos != null) {
+                sbExportStats = new StringBuilder(0);
+
+                sbExportStats.append(" " + tvTeam1.getText().toString() + " vs "+ etTeam2.getText().toString());
+                sbExportStats.append("\n\n " + tvTeam1.getText().toString() + " Score: " + tvScore1.getText());// viewModel.getTeam1Score());
+                sbExportStats.append("\n " + etTeam2.getText().toString() + " Score: " + tvScore2.getText());
+                sbExportStats.append("\n");
+                //todo Add shooting percentages by player
+                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(sAllActions);
+
+                if (!playerShootingStats.isEmpty()) {
+                    sbExportStats.append("\n--- Player Shooting Stats ---\n");
+                    for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
+                        String playerName = entry.getKey();
+                        PlayerShotStats stats = entry.getValue();
+                        int totalShots = stats.getGoals() + stats.getMisses();
+                        double accuracy = 0.0;
+                        if (totalShots > 0) {
+                            accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                        }
+                        sbExportStats.append(String.format(Locale.getDefault(),
+                                "%s: %d Goals, %d Misses (Total: %d, Accuracy: %.1f%%)\n",
+                                playerName, stats.getGoals(), stats.getMisses(), totalShots, accuracy));
+                    }
+                    sbExportStats.append("---------------------------\n");
+                } else {
+                    sbExportStats.append("\nNo shooting data to analyze for player percentages.\n");
+                }
+
+                sbExportStats.append("\n" + sAllActions);
+                sAllActions=String.valueOf(sbExportStats);
                 fos.write(sAllActions.getBytes()); // Write stats content to file
                 Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
             } else {
@@ -683,6 +727,9 @@ public class Frag_Gameplay extends Fragment {
                 }
             }
         }
+    }
+    private void CalcPercentages(String playerName,Float Percentage, Float Attempts ) {
+
     }
     private View.OnClickListener updateGameTitle() {
         String team1Name = tvTeam1.getText().toString();
@@ -742,7 +789,6 @@ public class Frag_Gameplay extends Fragment {
             focusedView.clearFocus(); // Clear focus from the focused EditText
         }
     }
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -753,61 +799,7 @@ public class Frag_Gameplay extends Fragment {
     long minutes = (timeInMillis / (1000 * 60)) % 60;
     return String.format("%02d:%02d", minutes, seconds);
 }
-/*    private void findTVLocations(){
-        if (ivCentrePassCircle != null) {
-            ivCentrePassCircle.post(() -> {
-                // Call the method that does the actual work
-                calculateAndSetAnimationPositions();
-            });
-        } else if (getView() != null) {
-            // Fallback to posting on the fragment's root view if ivCentrePassCircle is unexpectedly null
-            getView().post(() -> {
-                Log.w("Locations", "ivCentrePassCircle was null, posted on fragment's root view instead.");
-                calculateAndSetAnimationPositions();
-            });
-        } else {
-            Log.e("Locations", "Cannot post findTVLocations logic: ivCentrePassCircle and fragment's view are null.");
-            Toast.makeText(getContext(), "Error preparing animation paths.", Toast.LENGTH_SHORT).show();
-        }
-    }
-    private void calculateAndSetAnimationPositions() {
-        // Double-check that views are not null (they should have been found in onViewCreated)
-        if (tvScore1 == null || tvScore2 == null || ivCentrePassCircle == null) {
-            Log.e("Locations", "One or more views are null in calculateAndSetAnimationPositions.");
-            Toast.makeText(getContext(), "Animation view error.", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
-        // Now, get the values. They *should* be correct here.
-        float tvScore1X = tvScore1.getX();
-        float tvScore1Y = tvScore1.getY();
-        float tvScore1Height = tvScore1.getHeight();
-        // float tvScore1Width = tvScore1.getWidth(); // If needed later
-
-        float tvScore2X = tvScore2.getX(); // Get X for tvScore2 as well
-        float tvScore2Y = tvScore2.getY();
-        float tvScore2Height = tvScore2.getHeight();
-        // float tvScore2Width = tvScore2.getWidth(); // If needed later
-
-        float movingImageHeight = ivCentrePassCircle.getHeight();
-        float movingImageWidth = ivCentrePassCircle.getWidth(); // Get width for potential X calculations
-
-        // Log the raw values obtained after post
-        Log.d("Locations", "POSTED VALUES ---");
-        Log.d("Locations", "tvScore1 - X: " + tvScore1X + ", Y: " + tvScore1Y + ", W: " + tvScore1.getWidth() + ", H: " + tvScore1Height);
-        Log.d("Locations", "tvScore2 - X: " + tvScore2X + ", Y: " + tvScore2Y + ", W: " + tvScore2.getWidth() + ", H: " + tvScore2Height);
-        Log.d("Locations", "ivCentrePassCircle - W: " + movingImageWidth + ", H: " + movingImageHeight);
-        Log.d("Locations", "--- END POSTED VALUES");
-
-        // Check if any critical dimension is still zero (as a safeguard)
-        if (tvScore1Height == 0 || tvScore2Height == 0 || movingImageHeight == 0 || movingImageWidth == 0) {
-            Log.e("Locations", "Critical dimension is zero even after post. " +
-                    "tvS1H: " + tvScore1Height + ", tvS2H: " + tvScore2Height +
-                    ", imgW: " + movingImageWidth + ", imgH: " + movingImageHeight);
-            Toast.makeText(getContext(), "Layout error, cannot determine animation paths.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-    }*/
     private void startImageAnimation() {
         if (ivCentrePassCircle == null || endX == 0) { // Check if view and coordinates are ready
             return;
@@ -889,3 +881,46 @@ public class Frag_Gameplay extends Fragment {
 // TO DO     Save Game/app Data when exiting and reload when restarting
 // TO DO     Bring chosen team name into Gameplay
 // TO DO     Change colours for centre pass change
+
+// Data class to hold stats for each player position
+class PlayerShotStats {
+    String playerName;
+    int goals;
+    int misses;
+
+    public PlayerShotStats(String position) {
+        this.playerName = position;
+        this.goals = 0;
+        this.misses = 0;
+    }
+
+    public String getPosition() {
+        return playerName;
+    }
+
+    public int getGoals() {
+        return goals;
+    }
+
+    public void incrementGoals() {
+        this.goals++;
+    }
+
+    public int getMisses() {
+        return misses;
+    }
+
+    public void incrementMisses() {
+        this.misses++;
+    }
+
+    @Override
+    public String toString() {
+        return "PlayerShotStats{" +
+                "Player='" + playerName + '\'' +
+                ", goals=" + goals +
+                ", misses=" + misses +
+                '}';
+    }
+}
+

@@ -60,12 +60,8 @@ public class Frag_TeamList extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_team_list, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
-
         etTeamName = view.findViewById(R.id.etTeamName);
-/*
-        etPlayerName = view.findViewById(R.id.etPlayerName);
-        btnAddPlayer = view.findViewById(R.id.btnAddPlayer);
-*/
+
         btnSaveTeam = view.findViewById(R.id.btnSaveTeam);
         btnDeleteCurrentTeam = view.findViewById(R.id.btnDeleteCurrentTeam);
         btnDeleteAllTeams=view.findViewById(R.id.btnDeleteAllTeams);
