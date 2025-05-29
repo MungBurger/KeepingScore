@@ -168,8 +168,9 @@
                 style="?android:attr/buttonBarButtonStyle"
                 android:layout_width="112dp"
                 android:layout_height="50dp"
-                android:text="Best on Court"
+                android:text=" "
                 android:enabled="false"
+
                 android:textAlignment="center"
                 android:textSize="20dp"
                 android:padding="0dp"/>

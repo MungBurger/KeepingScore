@@ -3,7 +3,9 @@ package com.robmapps.keepingscore;
 import android.app.AlertDialog;
 import android.graphics.Color;
 import android.os.Bundle;
+
 import androidx.room.Room;
+
 import android.content.IntentFilter;
 
 import androidx.annotation.NonNull;
@@ -12,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -47,7 +50,7 @@ public class Frag_TeamList extends Fragment {
     private SharedViewModel viewModel; // Declare viewModel at the class level
     private EditText etTeamName, etPlayerName;
     private RecyclerView rvPlayerNames;
-    private Button btnAddPlayer, btnSaveTeam, btnDeleteCurrentTeam, btnEditTeam,btnAddNewTeam,btnDeleteAllTeams;
+    private Button btnAddPlayer, btnSaveTeam, btnDeleteCurrentTeam, btnEditTeam, btnAddNewTeam, btnDeleteAllTeams;
     private Spinner spTeamList; // Declare the Spinner for team selection
     private boolean hasUnsavedChanges = false; // Flag for tracking unsaved changes
     private boolean isInitiatingNewTeam = false;
@@ -64,8 +67,8 @@ public class Frag_TeamList extends Fragment {
 
         btnSaveTeam = view.findViewById(R.id.btnSaveTeam);
         btnDeleteCurrentTeam = view.findViewById(R.id.btnDeleteCurrentTeam);
-        btnDeleteAllTeams=view.findViewById(R.id.btnDeleteAllTeams);
-        btnAddNewTeam=view.findViewById(R.id.btnAddNewTeam);
+        btnDeleteAllTeams = view.findViewById(R.id.btnDeleteAllTeams);
+        btnAddNewTeam = view.findViewById(R.id.btnAddNewTeam);
         spTeamList = view.findViewById(R.id.spTeamList); // Reference the Spinner from the XML layout
         rvPlayerNames = view.findViewById(R.id.rvPlayerNames);
 
@@ -82,13 +85,17 @@ public class Frag_TeamList extends Fragment {
 
         etTeamName.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 hasUnsavedChanges = true; // Mark changes as unsaved
             }
+
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
 
 // Initialize RecyclerView and PlayerAdapter
@@ -111,9 +118,9 @@ public class Frag_TeamList extends Fragment {
 
         // Existing button logic (e.g., save, choose, edit teams)
         btnSaveTeam.setOnClickListener(v -> saveTeam());
-        btnAddNewTeam.setOnClickListener(v ->addNewTeam());
+        btnAddNewTeam.setOnClickListener(v -> addNewTeam());
         btnDeleteCurrentTeam.setOnClickListener(v -> deleteCurrentTeam());
-        btnDeleteAllTeams.setOnClickListener(v ->deleteAllTeams());
+        btnDeleteAllTeams.setOnClickListener(v -> deleteAllTeams());
         // Set up the dropdown for team selection
         setupTeamDropdown();
 
@@ -138,7 +145,7 @@ public class Frag_TeamList extends Fragment {
             }
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(
                     requireContext(), android.R.layout.simple_spinner_dropdown_item, teamNames);
-                    spTeamList.setAdapter(adapter);
+            spTeamList.setAdapter(adapter);
         });
         return view;
     }
@@ -183,6 +190,7 @@ public class Frag_TeamList extends Fragment {
         hasUnsavedChanges = false; // Reset the unsaved changes flag
         updatePlayerControlsState(true);
     }
+
     private void deleteCurrentTeam() {
         String teamName = etTeamName.getText().toString().trim();
 
@@ -211,6 +219,7 @@ public class Frag_TeamList extends Fragment {
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
     }
+
     private void addNewTeam() {
         if (hasUnsavedChanges) {
             new AlertDialog.Builder(requireContext())
@@ -228,6 +237,7 @@ public class Frag_TeamList extends Fragment {
             showEnterTeamNameDialog();
         }
     }
+
     private void showEnterTeamNameDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Create New Team");
@@ -291,7 +301,7 @@ public class Frag_TeamList extends Fragment {
         isInitiatingNewTeam = true;
         viewModel.setActiveTeam(new Team(teamName)); // Or: new Team(teamName) if your ViewModel needs it immediately
         // but null is fine if the save operation creates the full Team object.
-        Log.d("TeamListDebug", "proceedWithAddNewTeam: "+ viewModel.getActiveTeam());
+        Log.d("TeamListDebug", "proceedWithAddNewTeam: " + viewModel.getActiveTeam());
 
         updatePlayerNameHint();
         updatePlayerControlsState(false); // Or true, if having a team name means some controls are enabled
@@ -302,6 +312,7 @@ public class Frag_TeamList extends Fragment {
         saveTeam();
         hasUnsavedChanges = false; // New team with players is an unsaved change
     }
+
     private String getNextAvailablePosition() {
         List<String> occupiedPositions = new ArrayList<>();
         int subCount = 0;
@@ -338,12 +349,12 @@ public class Frag_TeamList extends Fragment {
                 etPlayerName.setHint("Player Name (e.g., Sub)");
             } else if (nextPos.equalsIgnoreCase("Sub")) {
                 etPlayerName.setHint("Enter Name (Sub)");
-            }
-            else {
+            } else {
                 etPlayerName.setHint("Enter " + nextPos + " Name");
             }
         }
     }
+
     private void deleteAllTeams() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Delete ALL Teams")
@@ -368,7 +379,9 @@ public class Frag_TeamList extends Fragment {
 
     public interface OnTeamActionListener {
         void onTeamSaved(String teamName, ArrayList<String> playerNames);
+
         void onTeamChosen();
+
         void onTeamEdited(String teamName, ArrayList<String> playerNames);
     }
 
@@ -422,6 +435,7 @@ public class Frag_TeamList extends Fragment {
             }
         });
     }
+
     private void updateSpinner() {
         HashMap<String, ArrayList<Player>> teams = viewModel.getTeams().getValue();
         if (teams != null) {
@@ -444,6 +458,7 @@ public class Frag_TeamList extends Fragment {
             }
         }
     }
+
     private void updatePlayerControlsState(boolean enabled) {
         if (etPlayerName != null) {
             etPlayerName.setEnabled(enabled);
@@ -452,6 +467,7 @@ public class Frag_TeamList extends Fragment {
             btnAddPlayer.setEnabled(enabled);
         }
     }
+
     private ArrayList<Player> getPlayersFromRecyclerView() {
         ArrayList<Player> playersFromRV = new ArrayList<>();
         if (playerAdapter == null || rvPlayerNames == null) { // rvPlayerList is your RecyclerView instance
@@ -486,7 +502,9 @@ public class Frag_TeamList extends Fragment {
         } else {
             Log.d("Frag_TeamList", "No unsaved changes in onPause, not saving.");
         }
-    }    @Override
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
         super.onPause();

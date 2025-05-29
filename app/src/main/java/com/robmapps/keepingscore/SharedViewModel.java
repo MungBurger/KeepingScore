@@ -51,9 +51,6 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<String> getActiveTeamName() {
         return activeTeamName;
     }
-
-    // MutableLiveData for team names (we will update these from SharedPreferences)
-    // Existing LiveData for scores
     private MutableLiveData<Integer> _team1Score = new MutableLiveData<>(0);
     private MutableLiveData<Integer> _team2Score = new MutableLiveData<>(0);
     private MutableLiveData<String> _team1Name = new MutableLiveData<>();
@@ -61,8 +58,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<Integer> getTeam1Score() { return _team1Score; }
     public LiveData<Integer> getTeam2Score() { return _team2Score; }
     // Public LiveData to be observed by the Fragment
-    public LiveData<String> getTeam1Name() {
-        return _team1Name;
+    public LiveData<String> getTeam1Name() { return _team1Name;
     }
     public LiveData<String> getTeam2Name() {
         return _team2Name;
@@ -91,7 +87,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     }
     private final MutableLiveData<List<ScoringAttempt>> allActions = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<ScoringAttempt>> _currentActions = new MutableLiveData<>(new ArrayList<>());
-    public final LiveData<List<ScoringAttempt>> currentActions = _currentActions; //for local use within the module
+    public final LiveData<List<ScoringAttempt>> currentActions = _currentActions;
 
     // Constructor that accepts Application
     public SharedViewModel(@NonNull Application application, SavedStateHandle savedStateHandle) {
@@ -371,6 +367,9 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         }
         return logBuilder.toString();
     }
+
+    // Method to clear all actions
+
     public LiveData<String> getGameTimer() {
         return gameTimer;
     }
@@ -382,6 +381,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         _team2Score.setValue(0); // Reset Team 2 score
         gameTimer.setValue("00:00"); // Reset the timer
         currentQuarter.setValue(1); // Reset to the first quarter
+        allActions.setValue(new ArrayList<>());
     }
     public void swapCentrePass() {
         if (currentCentrePass.getValue() != null && currentCentrePass.getValue().equals("Team2")) {
