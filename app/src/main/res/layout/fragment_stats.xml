@@ -32,7 +32,8 @@
             android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:text="Delete this Game"
-            tools:visibility="visible" />
+            tools:visibility="visible"
+            android:enabled="false"/>
 
         <Button
             android:id="@+id/saveThisPage"

@@ -601,13 +601,10 @@ public class Frag_Gameplay extends Fragment {
                 if (iPerNum < iNumPers ) {
                     if (iNumPers == 2) {
                         tvQuarterNum.setText("End of H: " + iPerNum);
-                        // TODO Put end of period note in gamestats
-                        //sAllActions.append("\n------- End of H: " + iPerNum + "--------");
                     } else {
                         tvQuarterNum.setText("End of Q: " + iPerNum);
-                        // TODO Put end of period note in gamestats
-                        //sAllActions.append("\n------- End of Q: " + iPerNum + "--------");
                     }
+                    viewModel.recordAttempt("\n-------========-------","", false, timeFormatted);
                     btnStartGame.setEnabled(true);
                 } else {
                     tvQuarterNum.setText("Game Over");
@@ -863,10 +860,8 @@ public class Frag_Gameplay extends Fragment {
                 } else {
                     exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
-
                 exportFileContent.append("\n" + gameLogContent);
 
-                //sAllActions=String.valueOf(sbExportStats);
                 fos.write(exportFileContent.toString().getBytes()); // Write stats content to file
                 Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
             } else {
@@ -1077,7 +1072,7 @@ class PlayerShotStats {
 // TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track
 //     of player on and off times, and sum up total in-game time, maybe just a single string with all sub events.
 // TODO     Add players' player (best on court function)
-
+// TODO     Data to hold stats for each player position
 
 // Done:
 // TO DO     Buzz for in-game button clicks, points, end of playing time
@@ -1092,7 +1087,9 @@ class PlayerShotStats {
 // TO DO     Save Game/app Data when exiting and reload when restarting
 // TO DO     Bring chosen team name into Gameplay
 // TO DO     Change colours for centre pass change
+// TO DO     Add Game Mode and Period Number and total Periods to both SharedModelView and SharedPref, also to be reset by reset button.
+// TO DO     Put end of period note in gamestats
 
-// Data class to hold stats for each player position
+
 
 

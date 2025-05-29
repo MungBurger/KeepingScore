@@ -410,4 +410,3 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         }
     }
 }
-// TODO     Add Game Mode and Period Number and total Periods to both SharedModelView and SharedPref, also to be reset by reset button.
