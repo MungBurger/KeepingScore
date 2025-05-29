@@ -36,9 +36,9 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     private final MutableLiveData<String> currentCentrePass = new MutableLiveData<>("Team1");
     private final MutableLiveData<Integer> team1ScoreColor = new MutableLiveData<>(Color.rgb(51, 232, 20)); // Default color for Team 1
     private final MutableLiveData<Integer> team2ScoreColor = new MutableLiveData<>(Color.rgb(0, 0, 0)); // Default color for Team 2
+    private final MutableLiveData<String> gameStats = new MutableLiveData<>();
     private final AppDatabase database;
     private final TeamDAO teamDao;
-    private final MutableLiveData<List<ScoringAttempt>> allActions = new MutableLiveData<>(new ArrayList<>());
     private final LiveData<List<Team>> teamsLive;     // LiveData for the list of all teams (observed by the spinner)
 
     private static final String PREFS_NAME = "GamePreferences";
@@ -80,7 +80,6 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<Boolean> getGameInProgress() {
         return gameInProgress;
     }
-
     public void setGameInProgress(Boolean isInProgress) {
         gameInProgress.setValue(isInProgress);
     }
@@ -90,6 +89,9 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public void setGameMode(String mode) {
         gameMode.setValue(mode);
     }
+    private final MutableLiveData<List<ScoringAttempt>> allActions = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<ScoringAttempt>> _currentActions = new MutableLiveData<>(new ArrayList<>());
+    public final LiveData<List<ScoringAttempt>> currentActions = _currentActions; //for local use within the module
 
     // Constructor that accepts Application
     public SharedViewModel(@NonNull Application application, SavedStateHandle savedStateHandle) {
@@ -346,15 +348,29 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
             positionMap.put(position, player);
         }
     }
-    public void recordAttempt(String playerPosition, boolean isSuccessful, String timestamp) {
+    public void recordAttempt(String playerName,String playerPosition, boolean isSuccessful, String timestamp) {
         List<ScoringAttempt> currentActions = allActions.getValue();
         if (currentActions == null) {
             currentActions = new ArrayList<>();
         }
-        currentActions.add(new ScoringAttempt(playerPosition, isSuccessful, timestamp));
+        currentActions.add(new ScoringAttempt(playerName, playerPosition, isSuccessful, timestamp));
         allActions.setValue(currentActions); // Update LiveData
     }
+    public String getCurrentActionsLogString() {
+        StringBuilder logBuilder = new StringBuilder();
+        List<ScoringAttempt> attempts = allActions.getValue();
+        Log.d("ViewModel", "Inside getCurrentActionsLogString - attempts list size: " + attempts.size()); // Add this log
+        if (attempts != null) {
+            for (int i = 0; i < attempts.size(); i++) {
+                logBuilder.append(attempts.get(i).toString());
+                if (i < attempts.size() - 1) {
+                    logBuilder.append("\n");
+                }
 
+            }
+        }
+        return logBuilder.toString();
+    }
     public LiveData<String> getGameTimer() {
         return gameTimer;
     }

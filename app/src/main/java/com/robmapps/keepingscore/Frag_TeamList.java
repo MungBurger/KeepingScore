@@ -474,4 +474,29 @@ public class Frag_TeamList extends Fragment {
         }
         return playersFromRV;
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d("Frag_TeamList", "onPause called.");
+        // Check if there are unsaved changes before attempting to save
+        if (hasUnsavedChanges) {
+            Log.d("Frag_TeamList", "Unsaved changes detected in onPause, calling saveTeam().");
+            saveTeam(); // Call your existing saveTeam method
+        } else {
+            Log.d("Frag_TeamList", "No unsaved changes in onPause, not saving.");
+        }
+    }    @Override
+    public void onStop() {
+        super.onStop();
+        super.onPause();
+        Log.d("Frag_TeamList", "onPause called.");
+        // Check if there are unsaved changes before attempting to save
+        if (hasUnsavedChanges) {
+            Log.d("Frag_TeamList", "Unsaved changes detected in onPause, calling saveTeam().");
+            saveTeam(); // Call your existing saveTeam method
+        } else {
+            Log.d("Frag_TeamList", "No unsaved changes in onPause, not saving.");
+        }
+    }
 }

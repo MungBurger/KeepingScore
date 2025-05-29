@@ -35,4 +35,6 @@ public class GameStats {
         this.team2Score = team2Score;
         this.log = log;
     }
+    public GameStats() {
+    }
 }

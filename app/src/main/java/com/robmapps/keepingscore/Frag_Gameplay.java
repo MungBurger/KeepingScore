@@ -39,6 +39,7 @@ import com.robmapps.keepingscore.database.entities.GameStats;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -65,7 +66,7 @@ public class Frag_Gameplay extends Fragment {
     public Button btnGS1,btnGA1,btnGS1M,btnGA1M,btnGS2,btnGA2,btnGS2M,btnGA2M;
     public SharedPreferences spSavedValues;
     public CountDownTimer cdEndofPeriodTimer;
-    public StringBuilder sAllActions,sbExportStats;
+    public StringBuilder sbExportStats; // sAllActions,
     private SharedViewModel viewModel;
     private ImageView ivCentrePassCircle;
     private ObjectAnimator animatorX, animatorY; // To control the animation
@@ -77,12 +78,11 @@ public class Frag_Gameplay extends Fragment {
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_gameplay, container, false);
         ConstraintLayout constraintLayout = view.findViewById(R.id.gameplay_root_layout);
-
         setupUI(constraintLayout);
-        sAllActions = new StringBuilder(0);
+
+        //sAllActions = new StringBuilder(0);
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
 
-        // Bind UI elements
         tvScore1 = view.findViewById(R.id.Team1Score);
         tvScore2 = view.findViewById(R.id.Team2Score);
         tvGameTitle=view.findViewById(R.id.GameTitle);
@@ -97,6 +97,11 @@ public class Frag_Gameplay extends Fragment {
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
         btnGameMode = view.findViewById(R.id.GameMode);
         ivCentrePassCircle = view.findViewById(R.id.centrePassCircle);
+        if (sGSPlayer != null) {
+            btnGS1.setText("GS" + "\n"+sGSPlayer);
+            btnGA1.setText("GA" + "\n"+sGAPlayer);
+        }
+
 
         sCurrMode =viewModel.getGameMode().getValue().toString();
         //sCurrMode="15m,4Q"; // Default game mode
@@ -235,7 +240,8 @@ public class Frag_Gameplay extends Fragment {
             sTeam1=tvTeam1.getText().toString();
             sTeam2=etTeam2.getText().toString();
             StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " " + sTeam1 + " v " + sTeam2 + ".txt";
-            exportGameStats(StatsFileName, String.valueOf(sAllActions));
+            //exportGameStats(viewModel,StatsFileName, String.valueOf(sAllActions));
+            exportGameStats(StatsFileName);
         });
 
         // Observe Centre-Pass State and Colors
@@ -300,7 +306,8 @@ public class Frag_Gameplay extends Fragment {
                 iPerNum=1;
                 btnGS1.setEnabled(false);btnGA1.setEnabled(false);btnGS1M.setEnabled(false);btnGA1M.setEnabled(false);
                 btnGS2.setEnabled(false);btnGA2.setEnabled(false);btnGS2M.setEnabled(false);btnGA2M.setEnabled(false);
-                sAllActions.setLength(0);
+                //sAllActions.setLength(0);
+                // TODO Need to Clear the ViewModel stats record
                 if (viewModel.getGameInProgress().getValue()==true) {
                     viewModel.setGameInProgress(false);
                     Intent stopIntent = new Intent(requireContext(), TimerService.class);
@@ -338,6 +345,10 @@ public class Frag_Gameplay extends Fragment {
     }
 
     private void incrementScore(SharedViewModel viewModel, TextView scoreView, String playerPosition,String playerName, boolean isSuccessful) {
+        if (sGSPlayer != null) {
+            btnGS1.setText("GS" + "\n"+sGSPlayer);
+            btnGA1.setText("GA" + "\n"+sGAPlayer);
+        }
         if (isSuccessful) {
             if (scoreView == tvScore1) {
                 viewModel.updateTeam1Score(1); // Increment score for Team 1
@@ -363,8 +374,8 @@ public class Frag_Gameplay extends Fragment {
             playerName="Other Team";
             }
         }
-        sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
-        viewModel.recordAttempt(playerPosition, isSuccessful, timestamp);
+        //sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
+        viewModel.recordAttempt(playerName, playerPosition, isSuccessful, timeFormatted);
     }
     private void undoLastAction(SharedViewModel viewModel) {
         List<ScoringAttempt> currentActions = viewModel.getAllActions().getValue();
@@ -441,7 +452,7 @@ public class Frag_Gameplay extends Fragment {
         btnGameMode.setText(sCurrMode);
         bDebugMode=true;
         viewModel.setGameMode(sCurrMode);
-        Toast.makeText(requireContext(),"Debug mode",Toast.LENGTH_SHORT).show();
+        //Toast.makeText(requireContext(),"Debug mode",Toast.LENGTH_SHORT).show();
         Log.d("GameVariables", "Game Mode = " + sCurrMode); // Log when observer is triggered
         return true;
     }
@@ -506,10 +517,12 @@ public class Frag_Gameplay extends Fragment {
                 if (iPerNum<iNumPers+1) {
                     if(iNumPers==2) {
                         tvQuarterNum.setText("End of H: " + iPerNum);
-                        sAllActions.append("\n------- End of H: " + iPerNum + "--------");
+                        // TODO Put end of period note in gamestats
+                        //sAllActions.append("\n------- End of H: " + iPerNum + "--------");
                     } else {
                         tvQuarterNum.setText("End of Q: " + iPerNum);
-                        sAllActions.append("\n------- End of Q: " + iPerNum + "--------");
+                        // TODO Put end of period note in gamestats
+                        //sAllActions.append("\n------- End of Q: " + iPerNum + "--------");
                     }
                     btnStartGame.setEnabled(true);
                 }else {
@@ -596,7 +609,9 @@ public class Frag_Gameplay extends Fragment {
         spEditor.putString("sGSPlayer",sGSPlayer);
         spEditor.putString("sGAPlayer",sGAPlayer);
 
-        spEditor.putString("sAllActions",sAllActions.toString());
+        String gameLogForPrefs = viewModel.getCurrentActionsLogString();
+        spEditor.putString("GameLog",gameLogForPrefs); // Not using what Gemini suggested: mySharedPref.setAllActions(gameLogForPrefs);
+        //spEditor.putString("sAllActions",sAllActions.toString()); //This what what i had before
 
         spEditor.putBoolean("GameInProgress", viewModel.getGameInProgress().getValue());
         spEditor.putString("GameMode", viewModel.getGameMode().getValue());
@@ -605,10 +620,10 @@ public class Frag_Gameplay extends Fragment {
         GameStats stats = new GameStats(
                 new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date()),
                 tvTeam1.getText().toString(), // Team 1 name
-                "testname", //etTeam2.getText().toString(), // Team 2 name
+                etTeam2.getText().toString(), // Team 2 name
                 iScore1,                      // Team 1 score
                 iScore2,                      // Team 2 score
-                sAllActions.toString()        // Game log
+                gameLogForPrefs.toString()        // Game log
         );
 
         new Thread(() -> {
@@ -636,21 +651,64 @@ public class Frag_Gameplay extends Fragment {
         viewModel.setGameInProgress(spSavedValues.getBoolean("GameInProgress",viewModel.getGameInProgress().getValue()));
         viewModel.setGameMode(spSavedValues.getString("GameMode",viewModel.getGameMode().getValue()));
         viewModel.setCurrentPeriod(spSavedValues.getInt("CurrPeriod",1));
-
         bTimerRunning=viewModel.getGameInProgress().getValue();
 
-        sAllActions.setLength(0);
-        sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
+        String actionsLogFromPrefs = spSavedValues.getString("GameLog",null);//" .getAllActions();
+        if ((viewModel.currentActions.getValue() == null || viewModel.currentActions.getValue().isEmpty()) &&
+                actionsLogFromPrefs != null && !actionsLogFromPrefs.isEmpty()) {
+
+            List<ScoringAttempt> restoredAttempts = new ArrayList<>();
+            String[] lines = actionsLogFromPrefs.split("\n");
+            for (String line : lines) {
+                if (line.trim().isEmpty()) continue;
+                // You NEED a robust way to parse each 'line' back into a ScoringAttempt object.
+                // This depends entirely on the format defined by your ScoringAttempt.toString().
+                // Example: If ScoringAttempt.toString() produces "PlayerName,Position,Result,Timestamp"
+                try {
+                    String[] parts = line.split(",", -1); // Split by comma, -1 to keep trailing empty strings if any
+                    if (parts.length == 4) { // Or whatever number of parts your toString() creates
+                        // Assuming constructor: ScoringAttempt(playerName, playerPosition, isSuccessful, timestamp)
+                        if(parts[2].trim()=="true"){
+                            restoredAttempts.add(new ScoringAttempt(parts[0].trim(), parts[1].trim(), true, parts[3].trim()));
+                        } else{
+                            restoredAttempts.add(new ScoringAttempt(parts[0].trim(), parts[1].trim(), false, parts[3].trim()));
+                        }
+                        //restoredAttempts.add(new ScoringAttempt(parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim()));
+                    } else {
+                        Log.w("FragGameplay", "Could not parse action line: " + line);
+                    }
+                } catch (Exception e) { // Catch any parsing errors
+                    Log.e("FragGameplay", "Error parsing action line from SharedPreferences: " + line, e);
+                }
+            }
+            viewModel.updateAllActions(restoredAttempts); // Set the restored list in the ViewModel
+        }
+        //sAllActions.setLength(0);
+        //sAllActions.append(spSavedValues.getString("sAllActions",sAllActions.toString()));
+
+
         if (viewModel.getGameMode().getValue()!=""){
             btnGameMode.setText(viewModel.getGameMode().getValue());
         }else{
             btnGameMode.setText("15m,4Q");
         }
     }
-
-    private void exportGameStats(String fileName, String sAllActions) {
+    private void exportGameStats(String fileName) {
+        String gameLogContent = viewModel.getCurrentActionsLogString();
         OutputStream fos = null; // Use OutputStream
         Uri uri = null;
+        StringBuilder exportFileContent = new StringBuilder();
+
+        List<ScoringAttempt> actionsList = viewModel.getAllActions().getValue();
+        if (actionsList != null && !actionsList.isEmpty()) {
+            for (int i = 0; i < actionsList.size(); i++) {
+                ScoringAttempt attempt = actionsList.get(i);
+                exportFileContent.append(attempt.toString()); // Relies on ScoringAttempt.toString()
+                if (i < actionsList.size() - 1) {      // Add a newline for all but the last item
+                    exportFileContent.append("\n");
+                }
+            }
+        }
 
         try {
             ContentValues contentValues = new ContentValues();
@@ -679,17 +737,18 @@ public class Frag_Gameplay extends Fragment {
 
             fos = requireContext().getContentResolver().openOutputStream(uri);
             if (fos != null) {
-                sbExportStats = new StringBuilder(0);
+                StringBuilder allActions = new StringBuilder();
+                exportFileContent = new StringBuilder(0);
 
-                sbExportStats.append(" " + tvTeam1.getText().toString() + " vs "+ etTeam2.getText().toString());
-                sbExportStats.append("\n\n " + tvTeam1.getText().toString() + " Score: " + tvScore1.getText());// viewModel.getTeam1Score());
-                sbExportStats.append("\n " + etTeam2.getText().toString() + " Score: " + tvScore2.getText());
-                sbExportStats.append("\n");
-                //todo Add shooting percentages by player
-                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(sAllActions);
+                exportFileContent.append(" " + tvTeam1.getText().toString() + " vs "+ etTeam2.getText().toString());
+                exportFileContent.append("\n\n " + tvTeam1.getText().toString() + " Score: " + tvScore1.getText());// viewModel.getTeam1Score());
+                exportFileContent.append("\n " + etTeam2.getText().toString() + " Score: " + tvScore2.getText());
+                exportFileContent.append("\n");
+
+                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent);
 
                 if (!playerShootingStats.isEmpty()) {
-                    sbExportStats.append("\n--- Player Shooting Stats ---\n");
+                    exportFileContent.append("\n--- Player Shooting Stats ---\n");
                     for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
                         String playerName = entry.getKey();
                         PlayerShotStats stats = entry.getValue();
@@ -698,18 +757,19 @@ public class Frag_Gameplay extends Fragment {
                         if (totalShots > 0) {
                             accuracy = ((double) stats.getGoals() / totalShots) * 100;
                         }
-                        sbExportStats.append(String.format(Locale.getDefault(),
+                        exportFileContent.append(String.format(Locale.getDefault(),
                                 "%s: %d Goals, %d Misses (Total: %d, Accuracy: %.1f%%)\n",
                                 playerName, stats.getGoals(), stats.getMisses(), totalShots, accuracy));
                     }
-                    sbExportStats.append("---------------------------\n");
+                    exportFileContent.append("---------------------------\n");
                 } else {
-                    sbExportStats.append("\nNo shooting data to analyze for player percentages.\n");
+                    exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
 
-                sbExportStats.append("\n" + sAllActions);
-                sAllActions=String.valueOf(sbExportStats);
-                fos.write(sAllActions.getBytes()); // Write stats content to file
+                exportFileContent.append("\n" + gameLogContent);
+
+                //sAllActions=String.valueOf(sbExportStats);
+                fos.write(exportFileContent.toString().getBytes()); // Write stats content to file
                 Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
             } else {
                 Toast.makeText(getContext(), "Failed to open output stream.", Toast.LENGTH_SHORT).show();
@@ -859,43 +919,24 @@ public class Frag_Gameplay extends Fragment {
         }
     }
 }
-
-// TODO     Buzz for points, end of playing time
-// TODO     Use nice pretty icons
-// TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track of player on and off times, and sum up total in-game time
-// TODO     Add players' player (best on court function)
-// TODO     Going from a game-in-progress to Stats and back is fine, but going to TeamList disables the buttons.
-// TODO     Backing out of a game in progress also disables the buttons.
-
-
-
-// Done:
-// TO DO     Add first name of player in GS and GA to button
-// TO DO     Export saved games to file; only commit finalised games.
-// TO DO     Fix up exports
-// TO DO     Fix up Playerlist display (RecyclerView)
-// TO DO     Implement reset game
-// TO DO     Implement enabled/disabled buttons
-// TO DO     Assign player name to positions
-// TO DO     Implement quarter/Half timer (game mode and time); copy from other version
-// TO DO     Save Game/app Data when exiting and reload when restarting
-// TO DO     Bring chosen team name into Gameplay
-// TO DO     Change colours for centre pass change
-
-// Data class to hold stats for each player position
 class PlayerShotStats {
     String playerName;
+    String playerPosition;
     int goals;
     int misses;
 
     public PlayerShotStats(String position) {
-        this.playerName = position;
+        this.playerName = playerName;
+        this.playerPosition = position;
         this.goals = 0;
         this.misses = 0;
     }
 
-    public String getPosition() {
+    public String playerName() {
         return playerName;
+    }
+    public String playerPosition() {
+        return playerPosition;
     }
 
     public int getGoals() {
@@ -923,4 +964,26 @@ class PlayerShotStats {
                 '}';
     }
 }
+// TODO     Buzz for in-game button clicks, points, end of playing time
+// TODO     Use nice pretty icons
+// TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track
+//     of player on and off times, and sum up total in-game time, maybe just a single string with all sub events.
+// TODO     Add players' player (best on court function)
+
+
+// Done:
+// TO DO     Going from a game-in-progress to Stats and back is fine, but going to TeamList disables the buttons.// TO DO     Backing out of a game in progress also disables the buttons.// TO DO     Add first name of player in GS and GA to button
+// TO DO     Export saved games to file; only commit finalised games.
+// TO DO     Fix up exports
+// TO DO     Fix up Playerlist display (RecyclerView)
+// TO DO     Implement reset game
+// TO DO     Implement enabled/disabled buttons
+// TO DO     Assign player name to positions
+// TO DO     Implement quarter/Half timer (game mode and time); copy from other version
+// TO DO     Save Game/app Data when exiting and reload when restarting
+// TO DO     Bring chosen team name into Gameplay
+// TO DO     Change colours for centre pass change
+
+// Data class to hold stats for each player position
+
 

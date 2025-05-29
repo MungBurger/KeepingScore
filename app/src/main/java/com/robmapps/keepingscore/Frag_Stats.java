@@ -34,7 +34,6 @@ public class Frag_Stats extends Fragment {
 
         Spinner dropdown = view.findViewById(R.id.statsDropdown); // Replace with correct ID from fragment_stats.xml
         RecyclerView rvCurrentGameStats = view.findViewById(R.id.rvCurrentGameStats);
-
         rvCurrentGameStats.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         SharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -50,6 +49,25 @@ public class Frag_Stats extends Fragment {
             }
         });
 
+/*
+         //--- Example: If you have a TextView to display the log (optional) ---
+         TextView tvGameLog = view.findViewById(R.id.your_game_log_textview);
+         viewModel.currentActions.observe(getViewLifecycleOwner(), attempts -> {
+             StringBuilder logForDisplay = new StringBuilder();
+             if (attempts != null) {
+                 for (int i = 0; i < attempts.size(); i++) {
+                     logForDisplay.append(attempts.get(i).toString());
+                     if (i < attempts.size() - 1) {
+                         logForDisplay.append("\n");
+                    }
+                }
+            }
+            if (tvGameLog != null) {
+                tvGameLog.setText(logForDisplay.toString());
+            }
+        });
+        // --- End example ---
+*/
 
         return view;
     }
