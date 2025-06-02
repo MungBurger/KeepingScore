@@ -138,45 +138,47 @@ public class Frag_Stats extends Fragment {
                         PlayerShotStats stats = entry.getValue();
                         int totalShots = stats.getGoals() + stats.getMisses();
                         double accuracy = 0.0;
-                        if (totalShots > 0) {
-                            accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                        if (playerName.contains ("-------========-------")) {
+                        }else{
+                            if (totalShots > 0) {
+                                accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                            }
+                            exportFileContent.append(String.format(Locale.getDefault(),
+                                    "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
+                                    playerName, stats.getGoals(), stats.getMisses(), accuracy));
                         }
-                        exportFileContent.append(String.format(Locale.getDefault(),
-                                "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
-                                playerName, stats.getGoals(), stats.getMisses(),  accuracy));
                     }
                     exportFileContent.append("---------------------------\n");
                 } else {
                     exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
-
-                exportFileContent.append("\n" + gameLogContent);
-
-                //sAllActions=String.valueOf(sbExportStats);
-                //fos.write(exportFileContent.toString().getBytes()); // Write stats content to file
-                //Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
-            } else {
-                //Toast.makeText(getContext(), "Failed to open output stream.", Toast.LENGTH_SHORT).show();
-            }
-
-        } /*catch (IOException e) {
-            Toast.makeText(getContext(), "Failed to save stats: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();*/
-         finally {
-            /*if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                StringBuilder sb = new StringBuilder();
+                String[] lines = gameLogContent.split("\\R");
+                for (int i = 0; i < lines.length; i++) {
+                    String line = lines[i];
+                    if (line.contains("-------========-------")) {
+                        sb.append("-------========-------");
+                    } else {
+                        sb.append(line);
+                    }
+                    if (i < lines.length - 1) {
+                        sb.append("\n");
+                    }
                 }
-            }*/
+                String resultStringLoop = sb.toString();
+                exportFileContent.append("\n" + resultStringLoop);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+
         return exportFileContent.toString();
     }
-    private void saveGameStats(){
+
+    private void saveGameStats() {
         String gameLogContent = viewModel.getCurrentActionsLogString();
-        StringBuilder exportFileContent=new StringBuilder();
-        String fileName =new String();
+        StringBuilder exportFileContent = new StringBuilder();
+        String fileName = new String();
         OutputStream fos = null; // Use OutputStream
         Uri uri = null;
         //StringBuilder exportFileContent = new StringBuilder();
@@ -186,9 +188,9 @@ public class Frag_Stats extends Fragment {
         if (actionsList != null && !actionsList.isEmpty()) {
             for (int i = 0; i < actionsList.size(); i++) {
                 ScoringAttempt attempt = actionsList.get(i);
-                if(!attempt.toString().contains("-------========-------")){
+                if (!attempt.toString().contains("-------========-------")) {
                     exportFileContent.append(attempt.toString());
-                }else {
+                } else {
                     exportFileContent.append("-------========-------");
                 }
                 if (i < actionsList.size() - 1) {      // Add a newline for all but the last item
@@ -245,14 +247,28 @@ public class Frag_Stats extends Fragment {
                         }
                         exportFileContent.append(String.format(Locale.getDefault(),
                                 "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
-                                playerName, stats.getGoals(), stats.getMisses(),  accuracy));
+                                playerName, stats.getGoals(), stats.getMisses(), accuracy));
                     }
                     exportFileContent.append("---------------------------\n");
                 } else {
                     exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
 
-                exportFileContent.append("\n" + gameLogContent);
+                StringBuilder sb = new StringBuilder();
+                String[] lines = gameLogContent.split("\\R");
+                for (int i = 0; i < lines.length; i++) {
+                    String line = lines[i];
+                    if (line.contains("-------========-------")) {
+                        sb.append("-------========-------");
+                    } else {
+                        sb.append(line);
+                    }
+                    if (i < lines.length - 1) {
+                        sb.append("\n");
+                    }
+                }
+                String resultStringLoop = sb.toString();
+                exportFileContent.append("\n" + resultStringLoop);
 
                 //sAllActions=String.valueOf(sbExportStats);
                 fos.write(exportFileContent.toString().getBytes()); // Write stats content to file

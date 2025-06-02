@@ -1,0 +1,46 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".PlayerVotingFragment">
+
+    <TextView
+        android:id="@+id/tvVotingInstructions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Vote for Player's Player"
+        android:textAppearance="?attr/textAppearanceHeadline5"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/tvVoterName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceSubtitle1"
+        tools:text="Voting: [Player Name]"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Select player you are voting for:"
+        android:labelFor="@+id/spinnerVoteForPlayer"
+        android:layout_marginBottom="4dp"/>
+
+    <Spinner
+        android:id="@+id/spinnerVoteForPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btnSubmitVote"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Submit Vote"
+        android:layout_gravity="center_horizontal"/>
+
+</LinearLayout>

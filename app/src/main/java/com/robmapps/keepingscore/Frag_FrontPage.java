@@ -46,6 +46,7 @@ public class Frag_FrontPage extends Fragment {
         if (savedInstanceState != null) {
             etFrontPage.setText(savedInstanceState.getString("EditTextValue", ""));
         }
+        return ;
     }
 
     public void onCreate(Bundle savedInstanceState) {

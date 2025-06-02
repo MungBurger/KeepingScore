@@ -26,11 +26,10 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.IntentFilter;
-
-import androidx.constraintlayout.widget.ConstraintLayout;
 
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.animation.ObjectAnimator;
@@ -75,21 +74,24 @@ public class Frag_Gameplay extends Fragment {
     public StringBuilder sbExportStats; // sAllActions,
     private SharedViewModel viewModel;
     private ImageView ivCentrePassCircle;
-    private ObjectAnimator animatorX, animatorY; // To control the animation
+    private ObjectAnimator animatorY; // To control the animation
     private boolean movingToEndLocation = true; // To track animation direction
     private float startX, startY, endX, endY;   // Coordinates for movement
     // Below is vibration patterns
-    long[] patternGoal = {0,800,400};
-    long[] patternMiss = {0,100,100,100,100};
+    long[] patternGoal = {0, 800, 400};
+    long[] patternMiss = {0, 100, 100, 100, 100};
     long[] patternEndGame = {1, 100, 1000, 300, 200, 100, 500, 200, 100};
     long[] patternEndPeriod = {1, 100, 1000, 300, 200, 100, 500, 200, 100};
+    private float target1CenterX, target1CenterY;
+    private float target2CenterX, target2CenterY;
+    private boolean coordinatesInitialized = false;
 
     @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_gameplay, container, false);
-        ConstraintLayout constraintLayout = view.findViewById(R.id.gameplay_root_layout);
-        setupUI(constraintLayout);
+        LinearLayout LinearLayout = view.findViewById(R.id.gameplay_root_layout);
+        setupUI(LinearLayout);
 
         //sAllActions = new StringBuilder(0);
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -110,7 +112,7 @@ public class Frag_Gameplay extends Fragment {
         btnGA2 = view.findViewById(R.id.GA2);
         btnGS2M = view.findViewById(R.id.GS2Miss);
         btnGA2M = view.findViewById(R.id.GA2Miss);
-        btnShowStats = view.findViewById(R.id.Statistics);
+        //btnShowStats = view.findViewById(R.id.Statistics);
         tvTimeRem = view.findViewById(R.id.TimeRem);
         tvQuarterNum = view.findViewById(R.id.QuarterNum);
         btnGameMode = view.findViewById(R.id.GameMode);
@@ -140,6 +142,7 @@ public class Frag_Gameplay extends Fragment {
             btnGS2M.setEnabled(true);
             btnGA2M.setEnabled(true);
             btnGameMode.setEnabled(false);
+            btnStartGame.setEnabled(false);
             bTimerRunning = true;
         } else {
             btnGS1.setEnabled(false);
@@ -196,29 +199,7 @@ public class Frag_Gameplay extends Fragment {
                 updateGameTitle();
             }
         });
-        // Centre-pass circle info
-        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                // Remove the listener to prevent multiple calls
-                view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                if (tvScore1.getWidth() == 0 || tvScore1.getHeight() == 0 ||
-                        tvScore2.getWidth() == 0 || tvScore2.getHeight() == 0 || // <<< CHECK THIS
-                        ivCentrePassCircle.getWidth() == 0 || ivCentrePassCircle.getHeight() == 0) {
 
-                    // Define Start Location (e.g., left side of screen, middle vertically)
-                    startX = 1f;//tvScore1.getX() ;//+ (tvScore1.getWidth() / 2f) - (movingImageView.getWidth() );
-                    startY = 180f; //tvScore1.getY() + (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
-
-                    endX = startX; // tvScore2.getX() + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
-                    endY = startY + 900f; //+  tvScore2.getY() + (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
-
-                    // Set initial position of the ImageView if not already set by layout
-                    ivCentrePassCircle.setX(startX);
-                    ivCentrePassCircle.setY(startY);
-                }
-            }
-        });
         // Observe Team 2 name from the ViewModel's SavedStateHandle
         viewModel.getTeam2Name().observe(getViewLifecycleOwner(), team2Name -> {
             Log.d("GameplayTeam2Observer", "Team 2 name observed: " + team2Name);
@@ -287,14 +268,6 @@ public class Frag_Gameplay extends Fragment {
         btnGameMode.setOnLongClickListener(v -> GameModeDebug());
         viewModel.setGameMode(sCurrMode);
         btnReset.setOnClickListener(v -> resetGame());
-
-        btnShowStats.setOnClickListener(v -> {
-            sTeam1 = tvTeam1.getText().toString();
-            sTeam2 = etTeam2.getText().toString();
-            StatsFileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " " + sTeam1 + " v " + sTeam2 + ".txt";
-            //exportGameStats(viewModel,StatsFileName, String.valueOf(sAllActions));
-            exportGameStats(StatsFileName);
-        });
 
         // Observe Centre-Pass State and Colors
         viewModel.getCurrentCentrePass().observe(getViewLifecycleOwner(), centrePass -> {
@@ -417,15 +390,7 @@ public class Frag_Gameplay extends Fragment {
             startImageAnimation();
             viewModel.swapCentrePass();
         }
-        String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-        String ssuccess;
-        if (isSuccessful) {
-            MakeitShake(patternGoal);
-            ssuccess = "Goal";
-        } else {
-            MakeitShake(patternMiss);
-            ssuccess = "Miss";
-        }
+
         if (playerPosition == "GS1") {
             playerName = sGSPlayer;
         } else {
@@ -435,7 +400,6 @@ public class Frag_Gameplay extends Fragment {
                 playerName = "Other Team";
             }
         }
-        //sAllActions.append("\n"+ playerName +", " +  playerPosition + ", " + ssuccess + ", " +" "+timeFormatted);
         viewModel.recordAttempt(playerName, playerPosition, isSuccessful, timeFormatted);
     }
 
@@ -530,8 +494,6 @@ public class Frag_Gameplay extends Fragment {
     }
 
     private void startGameTimer() {
-        //findTVLocations();
-
         if (viewModel.getGameInProgress().getValue() == true) {
             Toast.makeText(requireContext(), "Game Timer is already running!", Toast.LENGTH_SHORT).show();
             btnStartGame.setEnabled(false);
@@ -568,6 +530,18 @@ public class Frag_Gameplay extends Fragment {
         bTimerRunning = true; // Set the timer state to running
         Toast.makeText(requireContext(), "Game Timer Started!", Toast.LENGTH_SHORT).show();
         btnGameMode.setEnabled(false);
+
+        int[] tvScore1ScreenCoordinates = new int[2];
+        int[] tvScore2ScreenCoordinates = new int[2];
+        tvScore1.getLocationOnScreen(tvScore1ScreenCoordinates);
+        tvScore2.getLocationOnScreen(tvScore2ScreenCoordinates);
+
+        startX = tvScore1ScreenCoordinates[0] + (tvScore1.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+        startY = tvScore1ScreenCoordinates[1] - (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
+        endX = tvScore2ScreenCoordinates[0] + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+        endY = tvScore2ScreenCoordinates[1] - (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
+        ivCentrePassCircle.setX(startX);
+        ivCentrePassCircle.setY(startY);
         ivCentrePassCircle.setVisibility(View.VISIBLE);
     }
 
@@ -597,22 +571,6 @@ public class Frag_Gameplay extends Fragment {
             public void onFinish() {
                 bTimerRunning = false;
                 viewModel.setGameInProgress(false);
-
-                if (iPerNum < iNumPers ) {
-                    if (iNumPers == 2) {
-                        tvQuarterNum.setText("End of H: " + iPerNum);
-                    } else {
-                        tvQuarterNum.setText("End of Q: " + iPerNum);
-                    }
-                    viewModel.recordAttempt("\n-------========-------","", false, timeFormatted);
-                    btnStartGame.setEnabled(true);
-                } else {
-                    tvQuarterNum.setText("Game Over");
-                    btnStartGame.setEnabled(false);
-                    MakeitShake(patternEndGame);
-                }
-                MakeitShake(patternEndPeriod);
-                iPerNum++;
                 btnGS1.setEnabled(false);
                 btnGA1.setEnabled(false);
                 btnGS1M.setEnabled(false);
@@ -622,6 +580,27 @@ public class Frag_Gameplay extends Fragment {
                 btnGS2M.setEnabled(false);
                 btnGA2M.setEnabled(false);
 
+                if (iPerNum < iNumPers) {
+                    if (iNumPers == 2) {
+                        tvQuarterNum.setText("End of H: " + iPerNum);
+                    } else {
+                        tvQuarterNum.setText("End of Q: " + iPerNum);
+                    }
+                    viewModel.recordAttempt("\n-------========-------", "", false, timeFormatted);
+                    btnStartGame.setEnabled(true);
+                    iPerNum++;
+                    MakeitShake(patternEndPeriod);
+                } else {
+                    tvQuarterNum.setText("Game Over");
+                    btnStartGame.setEnabled(false);
+                    MakeitShake(patternEndGame);
+
+                    Frag_Stats fragStats = new Frag_Stats();
+                    requireActivity().getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragmentContainerView1,fragStats)
+                            .addToBackStack(null) // Optional, allows back navigation to gameplay
+                            .commit();
+                }
             }
         }.start();
     }
@@ -787,106 +766,11 @@ public class Frag_Gameplay extends Fragment {
             btnGameMode.setText("15m,4Q");
         }
     }
-
-    private void exportGameStats(String fileName) {
-        String gameLogContent = viewModel.getCurrentActionsLogString();
-        OutputStream fos = null; // Use OutputStream
-        Uri uri = null;
-        StringBuilder exportFileContent = new StringBuilder();
-
-        List<ScoringAttempt> actionsList = viewModel.getAllActions().getValue();
-        if (actionsList != null && !actionsList.isEmpty()) {
-            for (int i = 0; i < actionsList.size(); i++) {
-                ScoringAttempt attempt = actionsList.get(i);
-                exportFileContent.append(attempt.toString()); // Relies on ScoringAttempt.toString()
-                if (i < actionsList.size() - 1) {      // Add a newline for all but the last item
-                    exportFileContent.append("\n");
-                }
-            }
-        }
-
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName); // File name
-            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain"); // File MIME type
-
-            // For Android Q (API 29) and above, save to the "Downloads" collection
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-                uri = requireContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues);
-            } else {
-                // For older versions, save to the public Downloads directory
-                // This requires WRITE_EXTERNAL_STORAGE permission for API < 29
-                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                if (!downloadsDir.exists()) {
-                    downloadsDir.mkdirs(); // Create the directory if it doesn't exist
-                }
-                File file = new File(downloadsDir, fileName);
-                uri = Uri.fromFile(file); // Get Uri from file path for older versions
-            }
-
-            if (uri == null) {
-                Toast.makeText(getContext(), "Failed to create file for saving.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            fos = requireContext().getContentResolver().openOutputStream(uri);
-            if (fos != null) {
-                StringBuilder allActions = new StringBuilder();
-                exportFileContent = new StringBuilder(0);
-
-                exportFileContent.append(" " + tvTeam1.getText().toString() + " vs " + etTeam2.getText().toString());
-                exportFileContent.append("\n\n " + tvTeam1.getText().toString() + " Score: " + tvScore1.getText());// viewModel.getTeam1Score());
-                exportFileContent.append("\n " + etTeam2.getText().toString() + " Score: " + tvScore2.getText());
-                exportFileContent.append("\n");
-
-                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent);
-
-                if (!playerShootingStats.isEmpty()) {
-                    exportFileContent.append("\n--- Player Shooting Stats ---\n");
-                    for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
-                        String playerName = entry.getKey();
-                        PlayerShotStats stats = entry.getValue();
-                        int totalShots = stats.getGoals() + stats.getMisses();
-                        double accuracy = 0.0;
-                        if (totalShots > 0) {
-                            accuracy = ((double) stats.getGoals() / totalShots) * 100;
-                        }
-                        exportFileContent.append(String.format(Locale.getDefault(),
-                                "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
-                                playerName, stats.getGoals(), stats.getMisses(), accuracy));
-                    }
-                    exportFileContent.append("---------------------------\n");
-                } else {
-                    exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
-                }
-                exportFileContent.append("\n" + gameLogContent);
-
-                fos.write(exportFileContent.toString().getBytes()); // Write stats content to file
-                Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(getContext(), "Failed to open output stream.", Toast.LENGTH_SHORT).show();
-            }
-
-        } catch (IOException e) {
-            Toast.makeText(getContext(), "Failed to save stats: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private void CalcPercentages(String playerName, Float Percentage, Float Attempts) {    }
-    void MakeitShake(long[] InputPattern){
+    void MakeitShake(long[] InputPattern) {
         Vibrator Vibe = (Vibrator) requireContext().getSystemService(Context.VIBRATOR_SERVICE);
         Vibe.vibrate(InputPattern, -1);
     }
+
     private View.OnClickListener updateGameTitle() {
         String team1Name = tvTeam1.getText().toString();
         String team2Name = etTeam2.getText().toString();
@@ -955,12 +839,6 @@ public class Frag_Gameplay extends Fragment {
         requireContext().unregisterReceiver(timerReceiver);
     }
 
-    private String formatTime(long timeInMillis) {
-        long seconds = (timeInMillis / 1000) % 60;
-        long minutes = (timeInMillis / (1000 * 60)) % 60;
-        return String.format("%02d:%02d", minutes, seconds);
-    }
-
     private void startImageAnimation() {
         if (ivCentrePassCircle == null || endX == 0) { // Check if view and coordinates are ready
             return;
@@ -968,56 +846,31 @@ public class Frag_Gameplay extends Fragment {
         ivCentrePassCircle.setVisibility(View.VISIBLE);
 
         // Determine target coordinates based on the current direction
-        float targetX = movingToEndLocation ? endX : startX;
         float targetY = movingToEndLocation ? endY : startY; // If Y also changes
+        // Create a new animator with proper duration for both transitions
+        animatorY = ObjectAnimator.ofFloat(ivCentrePassCircle, "Y", ivCentrePassCircle.getY(), targetY);
+        animatorY.setDuration(200); // Ensure smooth animation both ways
+        animatorY.setInterpolator(new AccelerateDecelerateInterpolator());
 
-        // Animate X position
-        animatorX = ObjectAnimator.ofFloat(ivCentrePassCircle, "translationX", ivCentrePassCircle.getTranslationX(), targetX - ivCentrePassCircle.getLeft());
-        animatorX = ObjectAnimator.ofFloat(ivCentrePassCircle, "translationY", ivCentrePassCircle.getTranslationY(), targetY - ivCentrePassCircle.getTop());
-        animatorX.setDuration(300);
+        animatorY.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                movingToEndLocation = !movingToEndLocation; // Flip direction for next movement
+            }
 
-        animatorX.setInterpolator(new AccelerateDecelerateInterpolator()); // No cast needed if using android.view.animation.AccelerateDecelerateInterpolator
+            @Override
+            public void onAnimationStart(Animator animation) {
+            }
 
-        // If you also want to animate Y position:
-         /*animatorY = ObjectAnimator.ofFloat(movingImageView, "translationY", movingImageView.getTranslationY(), targetY - movingImageView.getTop());
-         animatorY.setDuration(300);
-         animatorY.setInterpolator(new AccelerateDecelerateInterpolator());*/
+            @Override
+            public void onAnimationCancel(Animator animation) {
+            }
 
-        animatorX.addListener((Animator.AnimatorListener) new MyAnimatorListenerAdapter());
-
-        animatorX.start();
-        //if (animatorY != null) animatorY.start(); // Start Y animator if used
-    }
-
-    private void stopImageAnimation() {
-        if (animatorX != null) {
-            animatorX.removeAllListeners(); // Important to remove listener to stop recursion
-            animatorX.cancel();
-            animatorX = null;
-        }
-/*        if (animatorY != null) {
-            animatorY.removeAllListeners();
-            animatorY.cancel();
-            animatorY = null;
-        }*/
-        // Optional: Hide the image when animation stops
-        // if (movingImageView != null) {
-        //     movingImageView.setVisibility(View.GONE);
-        // }
-    }
-
-    private class MyAnimatorListenerAdapter extends android.animation.AnimatorListenerAdapter {
-        @Override
-        public void onAnimationEnd(Animator animation) {
-            super.onAnimationEnd(animation);
-            // Reverse direction
-            movingToEndLocation = !movingToEndLocation;
-            // Start animation in the opposite direction
-            // Check if the fragment is still added to prevent crashes if fragment is destroyed
-          /*  if (isAdded()) {
-                startImageAnimation();
-            }*/
-        }
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+            }
+        });
+        animatorY.start();
     }
 }
 
@@ -1073,6 +926,10 @@ class PlayerShotStats {
 //     of player on and off times, and sum up total in-game time, maybe just a single string with all sub events.
 // TODO     Add players' player (best on court function)
 // TODO     Data to hold stats for each player position
+// TODO     Allow swiping from one tab to the next
+// TODO     Change Main Activity from buttons to tab layout
+// TODO     Change away from and Disable Stats and TeamList when game timer is less than 10 seconds, to stop end-of period glitching
+
 
 // Done:
 // TO DO     Buzz for in-game button clicks, points, end of playing time
