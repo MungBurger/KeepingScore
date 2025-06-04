@@ -4,30 +4,55 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.viewpager2.widget.ViewPager2;
 
-import android.app.AlertDialog;
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
-
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnTeamActionListener {
     private SharedViewModel sharedViewModel;
-    public String sTeamName;
+    private ViewPager2 viewPager;
+    private MyFragmentPagerAdapter pagerAdapter;
+
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_main);
+
+        viewPager = findViewById(R.id.view_pager);
+        pagerAdapter = new MyFragmentPagerAdapter(this); // 'this' is the FragmentActivity
+        viewPager.setAdapter(pagerAdapter);
+/*
         FragmentManager fragmentManager = getSupportFragmentManager();
         List<Fragment> fragments = fragmentManager.getFragments();
-        boolean noActiveFragments = true; // Assume no active fragments initially\
+*/
 
-        // Register the back press callback
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (viewPager.getCurrentItem() == 0) {
+                    // If the ViewPager is on the first page, allow the default behavior
+                    // (which might be to finish the activity if no other back stack entries).
+                    // To explicitly trigger the default app exit or fragment pop:
+                    setEnabled(false); // Disable this callback
+                    MainActivity.super.onBackPressed(); // Call Activity's default onBackPressed
+                    // Or, if you want to ensure it's re-enabled for future state changes:
+                    // if (!isFinishing()) { setEnabled(true); }
+                } else {
+                    // If the ViewPager is not on the first page, navigate to the previous page.
+                    viewPager.setCurrentItem(viewPager.getCurrentItem() - 1, true);
+                }
+            }
+        });
+/*        // Register the back press callback
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -40,14 +65,14 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
                     getSupportFragmentManager().popBackStack();
                 }
             }
-        });
-        // Set the initial fragment if none exists
+        });*/
+/*        // Set the initial fragment if none exists
         if (savedInstanceState == null) {
-            fragmentManager.beginTransaction()
+            MyFragmentPagerAdapter.beginTransaction()
                     .add(R.id.fragmentContainerView1, new Frag_TeamList(), "Frag_TeamList")
                     .addToBackStack("Frag_TeamList") // Ensure the tag is also the back stack name
                     .commit();
-        }
+        }*/
 
 /*        Button btnFront=findViewById(R.id.btnFrontPage);
         btnFront.setOnClickListener(v -> {
@@ -90,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
             }
         }
         // Activate or add the fragment
-        if (desiredFragment != null) {
+/*        if (desiredFragment != null) {
             fragmentManager.beginTransaction()
                     .replace(R.id.fragmentContainerView1, desiredFragment, fragmentTag) // Ensure the fragment is displayed
                     .commit();
@@ -99,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
                     .replace(R.id.fragmentContainerView1, newFragmentInstance, fragmentTag)
                     .addToBackStack(fragmentTag)
                     .commit();
-        }
+        }*/
     }
     @Override
     public void onTeamSaved(String teamName, ArrayList<String> playerNames) {

@@ -595,11 +595,14 @@ public class Frag_Gameplay extends Fragment {
                     btnStartGame.setEnabled(false);
                     MakeitShake(patternEndGame);
 
+//TODO Auto change to Stats page after game finishes
+/*
                     Frag_Stats fragStats = new Frag_Stats();
                     requireActivity().getSupportFragmentManager().beginTransaction()
                             .replace(R.id.fragmentContainerView1,fragStats)
                             .addToBackStack(null) // Optional, allows back navigation to gameplay
                             .commit();
+*/
                 }
             }
         }.start();
