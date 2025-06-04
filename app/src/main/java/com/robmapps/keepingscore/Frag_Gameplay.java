@@ -245,7 +245,7 @@ public class Frag_Gameplay extends Fragment {
         btnGA2M.setOnClickListener(v -> {
             incrementScore(viewModel, tvScore2, "GA2", "Other", false);
         });
-        btnTeamList = view.findViewById(R.id.btnTeamsLists);
+        //btnTeamList = view.findViewById(R.id.btnTeamsLists);
 
         view.findViewById(R.id.Team1Score).setOnClickListener(v -> {
             viewModel.swapCentrePass();

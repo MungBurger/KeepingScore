@@ -11,6 +11,10 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +26,12 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
     public static final int GAMEPLAY_PAGE = 1;
     public static final int STATS_PAGE = 2;
     private MyFragmentPagerAdapter pagerAdapter;
+    private TabLayout tabLayout;
+    private final String[] tabTitles = new String[]{
+            "Teams",
+            "Gameplay",
+            "Stats"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,11 +42,22 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         viewPager = findViewById(R.id.view_pager);
         pagerAdapter = new MyFragmentPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
-/*
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        List<Fragment> fragments = fragmentManager.getFragments();
-*/
-
+        tabLayout = findViewById(R.id.tab_layout);
+        if (tabLayout == null) {
+            Log.e("MainActivity", "TabLayout not found!");
+            // Handle error
+        }
+        if (tabLayout != null && viewPager != null) {
+            new TabLayoutMediator(tabLayout, viewPager,
+                    (tab, position) -> {
+                        // Set the title for each tab based on its position
+                        if (position < tabTitles.length) {
+                            tab.setText(tabTitles[position]);
+                        }
+                        // tab.setIcon(R.drawable.tab_icon_teams);
+                    }
+            ).attach();
+        }
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -58,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
                     .commit();
         }*/
 
-        Button btnGameplay = findViewById(R.id.btnGamePlay);
+/*        Button btnGameplay = findViewById(R.id.btnGamePlay);
         btnGameplay.setOnClickListener(v -> {
             //activateFragment("Frag_Gameplay", new Frag_Gameplay());
             viewPager.setCurrentItem(GAMEPLAY_PAGE, true); // true for smooth scroll
@@ -73,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         btnStats.setOnClickListener(v -> {
             //activateFragment("Frag_Stats", new Frag_Stats());
             viewPager.setCurrentItem(STATS_PAGE, true); // true for smooth scroll
-        });
+        });*/
     }
 
     private void activateFragment(String fragmentTag, Fragment newFragmentInstance) {
