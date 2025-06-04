@@ -18,9 +18,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnTeamActionListener {
     private SharedViewModel sharedViewModel;
     private ViewPager2 viewPager;
+    public static final int TEAM_LIST_PAGE = 0;
+    public static final int GAMEPLAY_PAGE = 1;
+    public static final int STATS_PAGE = 2;
     private MyFragmentPagerAdapter pagerAdapter;
 
-    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,7 +30,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
         setContentView(R.layout.activity_main);
 
         viewPager = findViewById(R.id.view_pager);
-        pagerAdapter = new MyFragmentPagerAdapter(this); // 'this' is the FragmentActivity
+        pagerAdapter = new MyFragmentPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
 /*
         FragmentManager fragmentManager = getSupportFragmentManager();
@@ -39,33 +41,15 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
             @Override
             public void handleOnBackPressed() {
                 if (viewPager.getCurrentItem() == 0) {
-                    // If the ViewPager is on the first page, allow the default behavior
-                    // (which might be to finish the activity if no other back stack entries).
-                    // To explicitly trigger the default app exit or fragment pop:
                     setEnabled(false); // Disable this callback
                     MainActivity.super.onBackPressed(); // Call Activity's default onBackPressed
                     // Or, if you want to ensure it's re-enabled for future state changes:
                     // if (!isFinishing()) { setEnabled(true); }
                 } else {
-                    // If the ViewPager is not on the first page, navigate to the previous page.
                     viewPager.setCurrentItem(viewPager.getCurrentItem() - 1, true);
                 }
             }
         });
-/*        // Register the back press callback
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                // Check if there are any fragments in the back stack
-                if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-                    // Close the app if no fragments are left
-                    finish(); // Ends the activity
-                } else {
-                    // Navigate to the previous fragment
-                    getSupportFragmentManager().popBackStack();
-                }
-            }
-        });*/
 /*        // Set the initial fragment if none exists
         if (savedInstanceState == null) {
             MyFragmentPagerAdapter.beginTransaction()
@@ -74,21 +58,21 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
                     .commit();
         }*/
 
-/*        Button btnFront=findViewById(R.id.btnFrontPage);
-        btnFront.setOnClickListener(v -> {
-            activateFragment("Frag_FrontPage", new Frag_FrontPage());
-        });*/
         Button btnGameplay = findViewById(R.id.btnGamePlay);
         btnGameplay.setOnClickListener(v -> {
-            activateFragment("Frag_Gameplay", new Frag_Gameplay());
+            //activateFragment("Frag_Gameplay", new Frag_Gameplay());
+            viewPager.setCurrentItem(GAMEPLAY_PAGE, true); // true for smooth scroll
         });
         Button btnTeamsList=findViewById(R.id.btnTeamsLists);
         btnTeamsList.setOnClickListener(v -> {
-            activateFragment("Frag_TeamList", new Frag_TeamList());
+            //activateFragment("Frag_TeamList", new Frag_TeamList());
+            viewPager.setCurrentItem(TEAM_LIST_PAGE, true); // true for smooth scroll
+
         });
         Button btnStats=findViewById(R.id.btnStats);
         btnStats.setOnClickListener(v -> {
-            activateFragment("Frag_Stats", new Frag_Stats());
+            //activateFragment("Frag_Stats", new Frag_Stats());
+            viewPager.setCurrentItem(STATS_PAGE, true); // true for smooth scroll
         });
     }
 
@@ -114,17 +98,6 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
                 }
             }
         }
-        // Activate or add the fragment
-/*        if (desiredFragment != null) {
-            fragmentManager.beginTransaction()
-                    .replace(R.id.fragmentContainerView1, desiredFragment, fragmentTag) // Ensure the fragment is displayed
-                    .commit();
-        } else {
-            fragmentManager.beginTransaction()
-                    .replace(R.id.fragmentContainerView1, newFragmentInstance, fragmentTag)
-                    .addToBackStack(fragmentTag)
-                    .commit();
-        }*/
     }
     @Override
     public void onTeamSaved(String teamName, ArrayList<String> playerNames) {
