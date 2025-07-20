@@ -23,7 +23,7 @@ public class ShotAnalyser {
             }
             String playerName = columns[0];
             String shotOutcome = columns[2];    // Third column (index 2)
-            String outcomeLower = shotOutcome.toLowerCase();
+            String outcomeLower = shotOutcome.toLowerCase(java.util.Locale.ROOT);
             // Check if this playerName is one we want to track
             if ("goal".equals(outcomeLower) || "miss".equals(outcomeLower)) {
                 PlayerShotStats stats = playerStats.computeIfAbsent(playerName, k -> new PlayerShotStats(k));

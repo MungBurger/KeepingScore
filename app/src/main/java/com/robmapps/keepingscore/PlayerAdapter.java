@@ -91,8 +91,16 @@ public class PlayerAdapter extends RecyclerView.Adapter<PlayerAdapter.PlayerView
                             otherPlayer.setPosition("Off");
                         }
                     }
-                    // Notify adapter to update all views
-                    notifyDataSetChanged();
+                    // Use more specific notify methods instead of notifyDataSetChanged
+                    // Update the current item that changed position
+                    notifyItemChanged(holder.getAdapterPosition());
+                    
+                    // Find and update any other players whose positions were changed to "Off"
+                    for (int i = 0; i < playerList.size(); i++) {
+                        if (i != holder.getAdapterPosition() && playerList.get(i).getPosition().equals("Off")) {
+                            notifyItemChanged(i);
+                        }
+                    }
                     if (listener != null) {
                         listener.onPositionChanged(player);
                     }

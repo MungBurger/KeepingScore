@@ -102,8 +102,15 @@ public class Frag_TeamList extends Fragment {
         playerAdapter = new PlayerAdapter(playerNames, new PlayerAdapter.OnPlayerActionListener() {
             @Override
             public void onPlayerDeleted(Player player) {
-                playerNames.remove(player);
-                playerAdapter.notifyDataSetChanged(); // No more error
+                int position = playerNames.indexOf(player);
+                if (position != -1) {
+                    playerNames.remove(player);
+                    playerAdapter.notifyItemRemoved(position);
+                    // Notify any subsequent items that their positions changed
+                    if (position < playerNames.size()) {
+                        playerAdapter.notifyItemRangeChanged(position, playerNames.size() - position);
+                    }
+                }
             }
 
             @Override
@@ -126,9 +133,32 @@ public class Frag_TeamList extends Fragment {
 
         viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
             if (activeTeam != null && activeTeam.getPlayers() != null && !activeTeam.getPlayers().isEmpty()) {
+                // Save the old size for comparison
+                int oldSize = playerNames.size();
                 playerNames.clear();
                 playerNames.addAll(activeTeam.getPlayers());
-                playerAdapter.notifyDataSetChanged();
+                
+                // Use more specific notify methods
+                if (oldSize == 0) {
+                    // If the list was empty before, use notifyItemRangeInserted
+                    playerAdapter.notifyItemRangeInserted(0, playerNames.size());
+                } else if (playerNames.size() == 0) {
+                    // If the list is now empty, use notifyItemRangeRemoved
+                    playerAdapter.notifyItemRangeRemoved(0, oldSize);
+                } else {
+                    // Otherwise, use notifyItemRangeChanged for existing items
+                    int minSize = Math.min(oldSize, playerNames.size());
+                    playerAdapter.notifyItemRangeChanged(0, minSize);
+                    
+                    // If new list is larger, insert the additional items
+                    if (playerNames.size() > oldSize) {
+                        playerAdapter.notifyItemRangeInserted(oldSize, playerNames.size() - oldSize);
+                    } 
+                    // If new list is smaller, remove the extra items
+                    else if (oldSize > playerNames.size()) {
+                        playerAdapter.notifyItemRangeRemoved(playerNames.size(), oldSize - playerNames.size());
+                    }
+                }
                 Log.d("RecyclerViewDebug", "RecyclerView updated with " + playerNames.size() + " players.");
             } else {
                 Log.w("RecyclerViewDebug", "No players found for the active team here either.");
@@ -208,8 +238,12 @@ public class Frag_TeamList extends Fragment {
                     viewModel.deleteTeam(teamName); // Remove the team from the ViewModel
 
                     etTeamName.setText("");
+                    int oldSize = playerNames.size();
                     playerNames.clear();
-                    playerAdapter.notifyDataSetChanged();
+                    // Use notifyItemRangeRemoved instead of notifyDataSetChanged
+                    if (oldSize > 0) {
+                        playerAdapter.notifyItemRangeRemoved(0, oldSize);
+                    }
                     viewModel.setActiveTeamName("");
 
                     updateSpinner();
@@ -292,8 +326,9 @@ public class Frag_TeamList extends Fragment {
         activeTeam.setPlayers(new ArrayList<>(playerNames));
 
         if (playerAdapter != null) {
-            playerAdapter.notifyDataSetChanged();
-            Log.d("TeamListDebug", "proceedWithAddNewTeam: playerAdapter.notifyDataSetChanged() called. playerNames size: " + playerNames.size());
+            // Use notifyItemRangeInserted instead of notifyDataSetChanged
+            playerAdapter.notifyItemRangeInserted(0, playerNames.size());
+            Log.d("TeamListDebug", "proceedWithAddNewTeam: playerAdapter.notifyItemRangeInserted called. playerNames size: " + playerNames.size());
         } else {
             Log.e("TeamListError", "proceedWithAddNewTeam: playerAdapter IS NULL.");
         }
@@ -411,9 +446,32 @@ public class Frag_TeamList extends Fragment {
         });
         viewModel.getActiveTeam().observe(getViewLifecycleOwner(), activeTeam -> {
             if (activeTeam != null && activeTeam.getPlayers() != null && !activeTeam.getPlayers().isEmpty()) {
+                // Save the old size for comparison
+                int oldSize = playerNames.size();
                 playerNames.clear();
                 playerNames.addAll(activeTeam.getPlayers());
-                playerAdapter.notifyDataSetChanged();
+                
+                // Use more specific notify methods
+                if (oldSize == 0) {
+                    // If the list was empty before, use notifyItemRangeInserted
+                    playerAdapter.notifyItemRangeInserted(0, playerNames.size());
+                } else if (playerNames.size() == 0) {
+                    // If the list is now empty, use notifyItemRangeRemoved
+                    playerAdapter.notifyItemRangeRemoved(0, oldSize);
+                } else {
+                    // Otherwise, use notifyItemRangeChanged for existing items
+                    int minSize = Math.min(oldSize, playerNames.size());
+                    playerAdapter.notifyItemRangeChanged(0, minSize);
+                    
+                    // If new list is larger, insert the additional items
+                    if (playerNames.size() > oldSize) {
+                        playerAdapter.notifyItemRangeInserted(oldSize, playerNames.size() - oldSize);
+                    } 
+                    // If new list is smaller, remove the extra items
+                    else if (oldSize > playerNames.size()) {
+                        playerAdapter.notifyItemRangeRemoved(playerNames.size(), oldSize - playerNames.size());
+                    }
+                }
                 Log.d("RecyclerViewDebug", "RecyclerView updated with " + playerNames.size() + " players.");
             } else {
                 Log.w("RecyclerViewDebug", "No players found for the active team.");
