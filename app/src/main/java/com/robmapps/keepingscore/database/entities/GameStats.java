@@ -2,6 +2,7 @@ package com.robmapps.keepingscore.database.entities;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "game_stats")
@@ -27,6 +28,7 @@ public class GameStats {
     @ColumnInfo(name = "log")
     public String log; // Stores all in-game actions as a JSON or delimited string
 
+    @Ignore
     public GameStats(String gameDate, String team1Name, String team2Name, int team1Score, int team2Score, String log) {
         this.gameDate = gameDate;
         this.team1Name = team1Name;
