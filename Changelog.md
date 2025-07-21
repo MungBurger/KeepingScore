@@ -28,6 +28,11 @@
   - GameStateManager: Manages game state persistence
   - ScoringManager: Handles scoring logic
   - UIHelper: Manages UI operations
+- Added support for different screen sizes and orientations:
+  - Created dimension resources for different screen sizes
+  - Added layout variations for landscape orientation
+  - Created ScreenSizeHelper utility class
+  - Updated animations to adapt to screen orientation
 
 ### Fixed
 - Fixed AndroidManifest.xml by properly placing the screenOrientation attribute inside the activity tag
@@ -39,6 +44,11 @@
   - Renamed duplicate updateTimerDisplay method to updateTimerColor
   - Added default values for player names to prevent null pointer exceptions
 - Successfully built project with Gradle after component extraction and cleanup
+- Fixed ClassCastException in Frag_Gameplay.java and GameStateManager.java:
+  - Updated saveGameProgress to consistently save period as integer
+  - Enhanced restoreGameProgress to handle both integer and string values for backward compatibility
+  - Added proper error handling for type conversion issues
+  - Applied consistent data type handling across all related classes
 
 ### Cleanup
 - Removed obsolete files:

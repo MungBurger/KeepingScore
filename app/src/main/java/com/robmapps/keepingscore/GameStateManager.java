@@ -84,7 +84,14 @@ public class GameStateManager {
     private void saveGameProgress(SharedPreferences.Editor editor) {
         editor.putBoolean("GameInProgress", viewModel.getGameInProgress().getValue());
         editor.putString("GameMode", viewModel.getGameMode().getValue());
-        editor.putString("CurrPeriod", String.valueOf(viewModel.getCurrentPeriod().getValue()));
+        
+        // Save period as integer to avoid type conversion issues
+        Integer periodValue = viewModel.getCurrentPeriod().getValue();
+        if (periodValue != null) {
+            editor.putInt("CurrPeriod", periodValue);
+        } else {
+            editor.putInt("CurrPeriod", 1); // Default value
+        }
     }
     
     /**
@@ -131,7 +138,24 @@ public class GameStateManager {
         // Restore game progress
         viewModel.setGameInProgress(sharedPreferences.getBoolean("GameInProgress", false));
         viewModel.setGameMode(sharedPreferences.getString("GameMode", "15m,4Q"));
-        viewModel.setCurrentPeriod(sharedPreferences.getInt("CurrPeriod", 1));
+        
+        // Safely restore period value handling both integer and string formats
+        try {
+            // First try to get as integer (preferred format)
+            int period = sharedPreferences.getInt("CurrPeriod", 1);
+            viewModel.setCurrentPeriod(period);
+        } catch (ClassCastException e) {
+            // If that fails, get as string and parse
+            String periodStr = sharedPreferences.getString("CurrPeriod", "1");
+            try {
+                int period = Integer.parseInt(periodStr);
+                viewModel.setCurrentPeriod(period);
+            } catch (NumberFormatException nfe) {
+                // If parsing fails, use default value
+                viewModel.setCurrentPeriod(1);
+                Log.e("GameStateManager", "Error parsing period value: " + periodStr, nfe);
+            }
+        }
         
         // Restore scoring attempts
         restoreScoringAttempts();
