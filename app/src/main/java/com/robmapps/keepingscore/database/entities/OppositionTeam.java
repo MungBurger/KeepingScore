@@ -4,7 +4,9 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "opposition_teams")
+@Entity(tableName = "opposition_teams",
+       indices = {@androidx.room.Index("team_name")})
+
 public class OppositionTeam {
     @PrimaryKey(autoGenerate = true)
     public int id;

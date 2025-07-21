@@ -17,7 +17,7 @@ import com.robmapps.keepingscore.database.entities.GameStats;
 import com.robmapps.keepingscore.database.entities.GameAction;
 import com.robmapps.keepingscore.database.entities.OppositionTeam;
 
-@Database(entities = {Team.class, GameStats.class, GameAction.class, OppositionTeam.class}, version = 4, exportSchema = false)
+@Database(entities = {Team.class, GameStats.class, GameAction.class, OppositionTeam.class}, version = 6, exportSchema = false)
 @TypeConverters({Converters.class})
 
 public abstract class AppDatabase extends RoomDatabase { // Ensure AppDatabase is public
@@ -64,6 +64,52 @@ public abstract class AppDatabase extends RoomDatabase { // Ensure AppDatabase i
             database.execSQL("CREATE INDEX IF NOT EXISTS `index_opposition_teams_team_name` ON `opposition_teams` (`team_name`)");
         }
     };
+    
+    // Migration from version 4 to 5 - fixing opposition_teams table schema
+    static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Drop the old table and recreate it with the correct schema
+            database.execSQL("DROP TABLE IF EXISTS `opposition_teams`");
+            
+            // Create the opposition_teams table with the correct schema
+            database.execSQL("CREATE TABLE IF NOT EXISTS `opposition_teams` " +
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`team_name` TEXT, " +
+                    "`last_played_date` TEXT)");
+            
+            // Create index on team_name for faster lookups
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_opposition_teams_team_name` ON `opposition_teams` (`team_name`)");
+        }
+    };
+    
+    // Migration from version 5 to 6 - updating game_stats table
+    static final Migration MIGRATION_5_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            // Create a temporary table with the new schema
+            database.execSQL("CREATE TABLE IF NOT EXISTS `game_stats_temp` " +
+                    "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`game_date` TEXT, " +
+                    "`game_start_time` TEXT, " +
+                    "`team1_name` TEXT, " +
+                    "`team2_name` TEXT, " +
+                    "`team1_score` INTEGER NOT NULL, " +
+                    "`team2_score` INTEGER NOT NULL, " +
+                    "`game_mode` TEXT, " +
+                    "`period_duration` INTEGER NOT NULL)");
+            
+            // Copy data from the old table to the new one
+            database.execSQL("INSERT INTO `game_stats_temp` (id, game_date, team1_name, team2_name, team1_score, team2_score, game_start_time, game_mode, period_duration) " +
+                    "SELECT id, game_date, team1_name, team2_name, team1_score, team2_score, '', '', 0 FROM game_stats");
+            
+            // Drop the old table
+            database.execSQL("DROP TABLE game_stats");
+            
+            // Rename the new table to the original name
+            database.execSQL("ALTER TABLE game_stats_temp RENAME TO game_stats");
+        }
+    };
 
     public static AppDatabase getDatabase(final Context context) { // Ensure getDatabase is public
         if (INSTANCE == null) {
@@ -71,7 +117,7 @@ public abstract class AppDatabase extends RoomDatabase { // Ensure AppDatabase i
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     AppDatabase.class, "netball_database")
-                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                             .build();
                 }
             }

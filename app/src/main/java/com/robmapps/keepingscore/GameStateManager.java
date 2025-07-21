@@ -100,13 +100,31 @@ public class GameStateManager {
     private void saveGameStats(GameState gameState) {
         String gameLogForPrefs = viewModel.getCurrentActionsLogString();
         
+        // Get current date and time
+        String gameDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
+        String gameStartTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+        String gameMode = viewModel.getGameMode().getValue();
+        int periodDuration = 15; // Default value
+        
+        // Try to extract period duration from game mode
+        if (gameMode != null && gameMode.contains("m,")) {
+            try {
+                String durationStr = gameMode.substring(0, gameMode.indexOf("m,"));
+                periodDuration = Integer.parseInt(durationStr);
+            } catch (Exception e) {
+                // Use default if parsing fails
+            }
+        }
+        
         GameStats stats = new GameStats(
-                new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date()),
+                gameDate,
+                gameStartTime,
                 gameState.team1Name,
                 gameState.team2Name,
                 gameState.score1,
                 gameState.score2,
-                gameLogForPrefs
+                gameMode,
+                periodDuration
         );
 
         new Thread(() -> {

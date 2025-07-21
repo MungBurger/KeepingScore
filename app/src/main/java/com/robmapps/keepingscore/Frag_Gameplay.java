@@ -1045,13 +1045,21 @@ public class Frag_Gameplay extends Fragment {
     private void saveGameStats() {
         String gameLogForPrefs = viewModel.getCurrentActionsLogString();
         
+        // Get current date and time
+        String gameDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
+        String gameStartTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+        String gameMode = viewModel.getGameMode().getValue();
+        int periodDuration = iPerDuration;
+        
         GameStats stats = new GameStats(
-                new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date()),
+                gameDate,
+                gameStartTime,
                 tvTeam1.getText().toString(),
                 etTeam2.getText().toString(),
                 iScore1,
                 iScore2,
-                gameLogForPrefs
+                gameMode,
+                periodDuration
         );
 
         new Thread(() -> {

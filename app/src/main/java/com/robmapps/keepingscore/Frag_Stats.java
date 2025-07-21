@@ -32,6 +32,7 @@ import com.robmapps.keepingscore.database.entities.GameStats;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,19 +65,49 @@ public class Frag_Stats extends Fragment {
 
         viewModel.getAllGameStats().observe(getViewLifecycleOwner(), stats -> {
             if (stats != null) {
+                // Store the game stats list for reference when an item is selected
+                final List<GameStats> gameStatsList = stats;
+                
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                         android.R.layout.simple_spinner_dropdown_item,
                         stats.stream().map(game -> game.gameDate + ": " + game.team1Name + " vs " + game.team2Name)
                                 .collect(Collectors.toList()));
                 dropdown.setAdapter(adapter); // Correctly set the adapter for the Spinner
+                
+                // Set up spinner item selection listener
+                dropdown.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                        if (position >= 0 && position < gameStatsList.size()) {
+                            // Get the selected game stats
+                            GameStats selectedGame = gameStatsList.get(position);
+                            // Load game actions for this game
+                            loadGameActions(selectedGame);
+                        }
+                    }
 
+                    @Override
+                    public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                        // Do nothing
+                    }
+                });
+                
+                // If there are games, select the first one by default
+                if (!stats.isEmpty()) {
+                    loadGameActions(stats.get(0));
+                }
             }
         });
         tvFullGameStatsString = view.findViewById(R.id.tvFullGameStatsString); // Initialize the new TextView
 
-        gameStats = readGameStats("", new StringBuilder());
-        if (gameStats != null) {
-            tvFullGameStatsString.setText(gameStats.toString());
+        // Only use readGameStats for current game in progress
+        if (viewModel.getGameInProgress().getValue() == Boolean.TRUE) {
+            gameStats = readGameStats("", new StringBuilder());
+            if (gameStats != null) {
+                tvFullGameStatsString.setText(gameStats.toString());
+            }
+        } else {
+            tvFullGameStatsString.setText("Select a game from the dropdown to view stats");
         }
         btnSaveStats.setOnClickListener(v -> saveGameStats());
         
@@ -89,6 +120,110 @@ public class Frag_Stats extends Fragment {
         return view;
     }
 
+    /**
+     * Load game actions for a selected game from the database
+     * @param gameStats The selected game stats
+     */
+    private void loadGameActions(GameStats gameStats) {
+        // Show loading message
+        tvFullGameStatsString.setText("Loading game data...");
+        
+        // Get actions for this game from the database
+        viewModel.getActionsForGame(gameStats.id).observe(getViewLifecycleOwner(), actions -> {
+            if (actions == null || actions.isEmpty()) {
+                tvFullGameStatsString.setText("No actions found for this game.");
+                return;
+            }
+            
+            // Build the game stats display
+            StringBuilder displayText = new StringBuilder();
+            
+            // Game header
+            displayText.append(" ").append(gameStats.team1Name).append(" vs ").append(gameStats.team2Name);
+            displayText.append("\n\n ").append(gameStats.team1Name).append(" Score: ").append(gameStats.team1Score);
+            displayText.append("\n ").append(gameStats.team2Name).append(" Score: ").append(gameStats.team2Score);
+            displayText.append("\n");
+            
+            // Calculate player shooting stats
+            Map<String, PlayerShotStats> playerShootingStats = calculatePlayerStats(actions, gameStats.team1Name, gameStats.team2Name);
+            
+            // Display player shooting stats
+            if (!playerShootingStats.isEmpty()) {
+                displayText.append("\n--- Player Shooting Stats ---\n");
+                for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
+                    PlayerShotStats stats = entry.getValue();
+                    int totalShots = stats.getGoals() + stats.getMisses();
+                    double accuracy = 0.0;
+                    
+                    if (totalShots > 0) {
+                        accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                    }
+                    displayText.append(String.format(Locale.getDefault(),
+                            "%s: %s - %d Goals, %d Misses (Accuracy: %.1f%%)\n",
+                            stats.teamName, stats.playerName, 
+                            stats.getGoals(), stats.getMisses(), accuracy));
+                }
+                displayText.append("---------------------------\n");
+            } else {
+                displayText.append("\nNo shooting data to analyze for player percentages.\n");
+            }
+            
+            // Game Timeline section
+            displayText.append("\n--- Game Timeline ---\n");
+            displayText.append("Team Name, Position, Action, Player Name\n");
+            
+            // Sort actions by sequence number
+            List<GameAction> sortedActions = new ArrayList<>(actions);
+            sortedActions.sort((a1, a2) -> Integer.compare(a1.sequence, a2.sequence));
+            
+            // Add each action to the timeline
+            for (GameAction action : sortedActions) {
+                displayText.append(String.format("%s, %s, %s, %s\n", 
+                    action.teamName, 
+                    action.playerPosition, 
+                    action.actionType, 
+                    action.playerName));
+            }
+            
+            // Display the complete stats
+            tvFullGameStatsString.setText(displayText.toString());
+        });
+    }
+    
+    /**
+     * Calculate player shooting statistics from game actions
+     */
+    private Map<String, PlayerShotStats> calculatePlayerStats(List<GameAction> actions, String team1Name, String team2Name) {
+        Map<String, PlayerShotStats> playerStats = new HashMap<>();
+        
+        for (GameAction action : actions) {
+            // Skip non-goal/miss actions if any
+            if (!"Goal".equals(action.actionType) && !"Miss".equals(action.actionType)) {
+                continue;
+            }
+            
+            // Create a unique key for this player
+            String key = action.teamName + "-" + action.playerName;
+            
+            // Get or create player stats
+            PlayerShotStats stats = playerStats.get(key);
+            if (stats == null) {
+                stats = new PlayerShotStats(action.playerName);
+                stats.teamName = action.teamName;
+                playerStats.put(key, stats);
+            }
+            
+            // Update stats based on action type
+            if ("Goal".equals(action.actionType)) {
+                stats.incrementGoals();
+            } else if ("Miss".equals(action.actionType)) {
+                stats.incrementMisses();
+            }
+        }
+        
+        return playerStats;
+    }
+    
     private String readGameStats(String fileName, StringBuilder exportFileContent) {
         String gameLogContent = viewModel.getCurrentActionsLogString();
         //OutputStream fos = null; // Use OutputStream
@@ -327,8 +462,24 @@ public class Frag_Stats extends Fragment {
                 int team1Score = viewModel.getTeam1Score().getValue();
                 int team2Score = viewModel.getTeam2Score().getValue();
                 
-                // Create GameStats object without the log field
-                GameStats stats = new GameStats(gameDate, team1Name, team2Name, team1Score, team2Score, "");
+                // Get game configuration
+                String gameMode = viewModel.getGameMode().getValue();
+                String gameStartTime = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+                int periodDuration = 15; // Default to 15 minutes if not available
+                
+                // Extract period duration from game mode if possible
+                if (gameMode != null && gameMode.contains("m,")) {
+                    try {
+                        String durationStr = gameMode.substring(0, gameMode.indexOf("m,"));
+                        periodDuration = Integer.parseInt(durationStr);
+                    } catch (Exception e) {
+                        // Use default if parsing fails
+                    }
+                }
+                
+                // Create GameStats object with the new fields
+                GameStats stats = new GameStats(gameDate, gameStartTime, team1Name, team2Name, 
+                                              team1Score, team2Score, gameMode, periodDuration);
                 
                 // Create GameAction objects for each action
                 List<GameAction> gameActions = new ArrayList<>();

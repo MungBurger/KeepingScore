@@ -474,4 +474,9 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public LiveData<List<GameAction>> getActionsForGames(List<Integer> gameIds) {
         return database.gameActionDao().getActionsForGames(gameIds);
     }
+    
+    // Get actions for a specific game
+    public LiveData<List<GameAction>> getActionsForGame(int gameId) {
+        return database.gameActionDao().getActionsForGame(gameId);
+    }
 }
