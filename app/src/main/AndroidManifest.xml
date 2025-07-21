@@ -3,6 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Define supported screen sizes -->
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true" />
+    
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
@@ -17,7 +26,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="userPortrait">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

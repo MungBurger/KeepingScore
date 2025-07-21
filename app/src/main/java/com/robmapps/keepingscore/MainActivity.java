@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        // Allow both portrait and landscape orientations
         setContentView(R.layout.activity_main);
 
         viewPager = findViewById(R.id.view_pager);

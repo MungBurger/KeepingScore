@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources for large tablets (10+ inch screens) -->
+<resources>
+    <!-- Dimensions for large tablet layouts -->
+    <dimen name="activity_margin">32dp</dimen>
+    <dimen name="text_size_large">26sp</dimen>
+    <dimen name="text_size_medium">22sp</dimen>
+    <dimen name="text_size_small">18sp</dimen>
+    <dimen name="button_height">72dp</dimen>
+    <dimen name="button_text_size">22sp</dimen>
+</resources>

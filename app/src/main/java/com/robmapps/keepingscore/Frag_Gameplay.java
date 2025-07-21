@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -707,10 +708,22 @@ public class Frag_Gameplay extends Fragment {
         tvScore1.getLocationOnScreen(tvScore1ScreenCoordinates);
         tvScore2.getLocationOnScreen(tvScore2ScreenCoordinates);
 
-        startX = tvScore1ScreenCoordinates[0] + (tvScore1.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
-        startY = tvScore1ScreenCoordinates[1] - (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
-        endX = tvScore2ScreenCoordinates[0] + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
-        endY = tvScore2ScreenCoordinates[1] - (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
+        // Check if we're in landscape mode
+        boolean isLandscape = ScreenSizeHelper.isLandscape(requireContext());
+        
+        if (isLandscape) {
+            // In landscape mode, adjust animation path for horizontal movement
+            startX = tvScore1ScreenCoordinates[0] + (tvScore1.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+            startY = tvScore1ScreenCoordinates[1] + (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
+            endX = tvScore2ScreenCoordinates[0] + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+            endY = tvScore2ScreenCoordinates[1] + (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 2f);
+        } else {
+            // In portrait mode, use vertical movement
+            startX = tvScore1ScreenCoordinates[0] + (tvScore1.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+            startY = tvScore1ScreenCoordinates[1] - (tvScore1.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
+            endX = tvScore2ScreenCoordinates[0] + (tvScore2.getWidth() / 2f) - (ivCentrePassCircle.getWidth() / 2f);
+            endY = tvScore2ScreenCoordinates[1] - (tvScore2.getHeight() / 2f) - (ivCentrePassCircle.getHeight() / 3f);
+        }
         
         ivCentrePassCircle.setX(startX);
         ivCentrePassCircle.setY(startY);
@@ -1290,11 +1303,18 @@ public class Frag_Gameplay extends Fragment {
      * Creates and starts the animation for the centre pass indicator
      */
     private void createAndStartAnimation() {
-        // Determine target coordinates based on the current direction
-        float targetY = movingToEndLocation ? endY : startY;
+        // Check if we're in landscape mode
+        boolean isLandscape = ScreenSizeHelper.isLandscape(requireContext());
         
-        // Create a new animator with proper duration for both transitions
-        animatorY = ObjectAnimator.ofFloat(ivCentrePassCircle, "Y", ivCentrePassCircle.getY(), targetY);
+        if (isLandscape) {
+            // In landscape mode, animate horizontally (X axis)
+            float targetX = movingToEndLocation ? endX : startX;
+            animatorY = ObjectAnimator.ofFloat(ivCentrePassCircle, "X", ivCentrePassCircle.getX(), targetX);
+        } else {
+            // In portrait mode, animate vertically (Y axis)
+            float targetY = movingToEndLocation ? endY : startY;
+            animatorY = ObjectAnimator.ofFloat(ivCentrePassCircle, "Y", ivCentrePassCircle.getY(), targetY);
+        }
         animatorY.setDuration(200); // Ensure smooth animation both ways
         animatorY.setInterpolator(new AccelerateDecelerateInterpolator());
 

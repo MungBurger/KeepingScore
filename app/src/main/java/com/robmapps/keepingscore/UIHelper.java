@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Vibrator;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -124,10 +125,22 @@ public class UIHelper {
         score1View.getLocationOnScreen(score1Coordinates);
         score2View.getLocationOnScreen(score2Coordinates);
         
-        startX = score1Coordinates[0] + (score1View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
-        startY = score1Coordinates[1] - (score1View.getHeight() / 2f) - (centrePassCircle.getHeight() / 3f);
-        endX = score2Coordinates[0] + (score2View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
-        endY = score2Coordinates[1] - (score2View.getHeight() / 2f) - (centrePassCircle.getHeight() / 3f);
+        // Adjust animation based on screen orientation
+        boolean isLandscape = ScreenSizeHelper.isLandscape(context);
+        
+        if (isLandscape) {
+            // In landscape mode, adjust animation path
+            startX = score1Coordinates[0] + (score1View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
+            startY = score1Coordinates[1] + (score1View.getHeight() / 2f) - (centrePassCircle.getHeight() / 2f);
+            endX = score2Coordinates[0] + (score2View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
+            endY = score2Coordinates[1] + (score2View.getHeight() / 2f) - (centrePassCircle.getHeight() / 2f);
+        } else {
+            // In portrait mode, use original animation path
+            startX = score1Coordinates[0] + (score1View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
+            startY = score1Coordinates[1] - (score1View.getHeight() / 2f) - (centrePassCircle.getHeight() / 3f);
+            endX = score2Coordinates[0] + (score2View.getWidth() / 2f) - (centrePassCircle.getWidth() / 2f);
+            endY = score2Coordinates[1] - (score2View.getHeight() / 2f) - (centrePassCircle.getHeight() / 3f);
+        }
         
         centrePassCircle.setX(startX);
         centrePassCircle.setY(startY);
@@ -146,11 +159,19 @@ public class UIHelper {
         // Show the animation circle
         centrePassCircle.setVisibility(View.VISIBLE);
         
-        // Determine target coordinates based on the current direction
-        float targetY = movingToEndLocation ? endY : startY;
+        // Check if we're in landscape mode
+        boolean isLandscape = ScreenSizeHelper.isLandscape(context);
         
-        // Create a new animator with proper duration for both transitions
-        animator = ObjectAnimator.ofFloat(centrePassCircle, "Y", centrePassCircle.getY(), targetY);
+        // Determine target coordinates based on the current direction and orientation
+        if (isLandscape) {
+            // In landscape, animate horizontally (X axis)
+            float targetX = movingToEndLocation ? endX : startX;
+            animator = ObjectAnimator.ofFloat(centrePassCircle, "X", centrePassCircle.getX(), targetX);
+        } else {
+            // In portrait, animate vertically (Y axis)
+            float targetY = movingToEndLocation ? endY : startY;
+            animator = ObjectAnimator.ofFloat(centrePassCircle, "Y", centrePassCircle.getY(), targetY);
+        }
         animator.setDuration(200); // Ensure smooth animation both ways
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         
