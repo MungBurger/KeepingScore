@@ -14,13 +14,19 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.Transformations;
 import com.robmapps.keepingscore.database.AppDatabase;
+import com.robmapps.keepingscore.database.entities.GameAction;
 import com.robmapps.keepingscore.database.entities.GameStats;
 import com.robmapps.keepingscore.database.entities.Team;
+import com.robmapps.keepingscore.database.entities.OppositionTeam;
+
+import java.text.SimpleDateFormat;
 import com.robmapps.keepingscore.database.dao.TeamDAO;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
@@ -32,6 +38,7 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     private final MutableLiveData<String> gameMode = new MutableLiveData<>("10m,2H");
     private final MutableLiveData<Integer> currentPeriod = new MutableLiveData<>(1);
     private final MutableLiveData<Boolean> gameInProgress = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> gameSaved = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> currentQuarter = new MutableLiveData<>(1);
     private final MutableLiveData<String> currentCentrePass = new MutableLiveData<>("Team1");
     private final MutableLiveData<Integer> team1ScoreColor = new MutableLiveData<>(Color.rgb(51, 232, 20)); // Default color for Team 1
@@ -78,6 +85,14 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     }
     public void setGameInProgress(Boolean isInProgress) {
         gameInProgress.setValue(isInProgress);
+    }
+    
+    public LiveData<Boolean> getGameSaved() {
+        return gameSaved;
+    }
+    
+    public void setGameSaved(Boolean isSaved) {
+        gameSaved.setValue(isSaved);
     }
     public void setCurrentPeriod(Integer period) {
         currentPeriod.setValue(period);
@@ -139,8 +154,21 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         return database.gameStatsDao().getAllGameStats(); // Fetch all game stats from Room
     }
 
+    public void insertGameStats(GameStats gameStats, List<GameAction> actions) {
+        new Thread(() -> {
+            // Insert game stats and get the generated ID
+            database.gameStatsDao().insertGameStats(gameStats);
+            
+            // If we have actions to save, insert them with the game ID
+            if (actions != null && !actions.isEmpty()) {
+                database.gameActionDao().insertGameActions(actions);
+            }
+        }).start(); // Save game stats asynchronously
+    }
+    
+    // Keep the old method for backward compatibility
     public void insertGameStats(GameStats gameStats) {
-        new Thread(() -> database.gameStatsDao().insertGameStats(gameStats)).start(); // Save game stats asynchronously
+        insertGameStats(gameStats, null);
     }
 
     public void deleteGameStatsById(int id) {
@@ -407,6 +435,43 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         if (!name.equals(_team2Name.getValue())) { // Only save and update if the name has changed
             sharedPreferences.edit().putString(KEY_TEAM_2_NAME, name).apply();
             _team2Name.setValue(name); // Update the LiveData
+            
+            // Also save to opposition teams database if it's not empty
+            if (name != null && !name.isEmpty()) {
+                String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                saveOppositionTeam(name, currentDate);
+            }
         }
+    }
+    
+    // Save opposition team to database
+    private void saveOppositionTeam(String teamName, String lastPlayedDate) {
+        new Thread(() -> {
+            // Check if team already exists
+            OppositionTeam existingTeam = database.oppositionTeamDao().getOppositionTeamByNameDirect(teamName);
+            if (existingTeam != null) {
+                // Update last played date
+                database.oppositionTeamDao().updateLastPlayedDate(teamName, lastPlayedDate);
+            } else {
+                // Insert new opposition team
+                OppositionTeam newTeam = new OppositionTeam(teamName, lastPlayedDate);
+                database.oppositionTeamDao().insertOppositionTeam(newTeam);
+            }
+        }).start();
+    }
+    
+    // Get all opposition teams
+    public LiveData<List<OppositionTeam>> getAllOppositionTeams() {
+        return database.oppositionTeamDao().getAllOppositionTeams();
+    }
+    
+    // Get games filtered by opposition team
+    public LiveData<List<GameStats>> getGamesByOppositionTeam(String clubTeamName, String oppositionTeamName) {
+        return database.gameStatsDao().getGamesByOppositionTeam(clubTeamName, oppositionTeamName);
+    }
+    
+    // Get actions for multiple games
+    public LiveData<List<GameAction>> getActionsForGames(List<Integer> gameIds) {
+        return database.gameActionDao().getActionsForGames(gameIds);
     }
 }

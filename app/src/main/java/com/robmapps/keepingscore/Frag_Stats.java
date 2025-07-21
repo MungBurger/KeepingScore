@@ -26,7 +26,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.robmapps.keepingscore.database.entities.GameAction;
+import com.robmapps.keepingscore.database.entities.GameStats;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +58,7 @@ public class Frag_Stats extends Fragment {
         View view = inflater.inflate(R.layout.fragment_stats, container, false);
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
         btnSaveStats = view.findViewById(R.id.saveThisPage);
+        Button btnOppositionStats = view.findViewById(R.id.btnOppositionStats);
 
         Spinner dropdown = view.findViewById(R.id.statsDropdown); // Replace with correct ID from fragment_stats.xml
 
@@ -74,6 +79,13 @@ public class Frag_Stats extends Fragment {
             tvFullGameStatsString.setText(gameStats.toString());
         }
         btnSaveStats.setOnClickListener(v -> saveGameStats());
+        
+        // Set up opposition stats button
+        btnOppositionStats.setOnClickListener(v -> {
+            // Show the opposition stats dialog
+            OppositionStatsDialog dialog = new OppositionStatsDialog();
+            dialog.show(requireActivity().getSupportFragmentManager(), "OppositionStatsDialog");
+        });
         return view;
     }
 
@@ -84,9 +96,18 @@ public class Frag_Stats extends Fragment {
         //StringBuilder exportFileContent = new StringBuilder();
 
         List<ScoringAttempt> actionsList = viewModel.getAllActions().getValue();
+        String clubTeamName = viewModel.getActiveTeamName().getValue();
+        String oppositionTeamName = viewModel.getTeam2Name().getValue();
+        
+        // Ensure team names are not null or empty
+        if (clubTeamName == null || clubTeamName.isEmpty()) clubTeamName = "Club Team";
+        if (oppositionTeamName == null || oppositionTeamName.isEmpty()) oppositionTeamName = "Opposition Team";
+        
         if (actionsList != null && !actionsList.isEmpty()) {
             for (int i = 0; i < actionsList.size(); i++) {
                 ScoringAttempt attempt = actionsList.get(i);
+                // Set actual team names
+                attempt.setTeamNames(clubTeamName, oppositionTeamName);
                 exportFileContent.append(attempt.toString()); // Relies on ScoringAttempt.toString()
                 if (i < actionsList.size() - 1) {      // Add a newline for all but the last item
                     exportFileContent.append("\n");
@@ -129,29 +150,36 @@ public class Frag_Stats extends Fragment {
                 exportFileContent.append("\n " + viewModel.getTeam2Name().getValue() + " Score: " + viewModel.getTeam2Score().getValue());
                 exportFileContent.append("\n");
 
-                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent);
+                // Use the new method with team names
+                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent, clubTeamName, oppositionTeamName);
 
                 if (!playerShootingStats.isEmpty()) {
                     exportFileContent.append("\n--- Player Shooting Stats ---\n");
                     for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
-                        String playerName = entry.getKey();
+                        String statsKey = entry.getKey();
                         PlayerShotStats stats = entry.getValue();
                         int totalShots = stats.getGoals() + stats.getMisses();
                         double accuracy = 0.0;
-                        if (playerName.contains ("-------========-------")) {
-                        }else{
+                        
+                        if (!statsKey.contains("-------========-------")) {
                             if (totalShots > 0) {
                                 accuracy = ((double) stats.getGoals() / totalShots) * 100;
                             }
                             exportFileContent.append(String.format(Locale.getDefault(),
-                                    "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
-                                    playerName, stats.getGoals(), stats.getMisses(), accuracy));
+                                    "%s: %s - %d Goals, %d Misses (Accuracy: %.1f%%)\n",
+                                    stats.teamName, stats.playerName, 
+                                    stats.getGoals(), stats.getMisses(), accuracy));
                         }
                     }
                     exportFileContent.append("---------------------------\n");
                 } else {
                     exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
+                
+                // Add Game Timeline section title
+                exportFileContent.append("\n--- Game Timeline ---\n");
+                exportFileContent.append("Team Name, Position, Action, Player Name\n");
+                
                 StringBuilder sb = new StringBuilder();
                 String[] lines = gameLogContent.split("\\R");
                 for (int i = 0; i < lines.length; i++) {
@@ -185,9 +213,19 @@ public class Frag_Stats extends Fragment {
         fileName = "Netball Score-" + new SimpleDateFormat("yyyy-MM-dd-hh:mm", Locale.getDefault()).format(new Date()) + " " + viewModel.getActiveTeamName().getValue() + " v " + viewModel.getTeam2Name().getValue() + ".txt";
 
         List<ScoringAttempt> actionsList = viewModel.getAllActions().getValue();
+        String clubTeamName = viewModel.getActiveTeamName().getValue();
+        String oppositionTeamName = viewModel.getTeam2Name().getValue();
+        
+        // Ensure team names are not null or empty
+        if (clubTeamName == null || clubTeamName.isEmpty()) clubTeamName = "Club Team";
+        if (oppositionTeamName == null || oppositionTeamName.isEmpty()) oppositionTeamName = "Opposition Team";
+        
         if (actionsList != null && !actionsList.isEmpty()) {
             for (int i = 0; i < actionsList.size(); i++) {
                 ScoringAttempt attempt = actionsList.get(i);
+                // Set actual team names
+                attempt.setTeamNames(clubTeamName, oppositionTeamName);
+                
                 if (!attempt.toString().contains("-------========-------")) {
                     exportFileContent.append(attempt.toString());
                 } else {
@@ -233,26 +271,35 @@ public class Frag_Stats extends Fragment {
                 exportFileContent.append("\n " + viewModel.getTeam2Name().getValue() + " Score: " + viewModel.getTeam2Score().getValue());
                 exportFileContent.append("\n");
 
-                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent);
+                // Use the new method with team names
+                Map<String, PlayerShotStats> playerShootingStats = ShotAnalyser.analyzeShotData(gameLogContent, clubTeamName, oppositionTeamName);
 
                 if (!playerShootingStats.isEmpty()) {
                     exportFileContent.append("\n--- Player Shooting Stats ---\n");
                     for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
-                        String playerName = entry.getKey();
+                        String statsKey = entry.getKey();
                         PlayerShotStats stats = entry.getValue();
                         int totalShots = stats.getGoals() + stats.getMisses();
                         double accuracy = 0.0;
-                        if (totalShots > 0) {
-                            accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                        
+                        if (!statsKey.contains("-------========-------")) {
+                            if (totalShots > 0) {
+                                accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                            }
+                            exportFileContent.append(String.format(Locale.getDefault(),
+                                    "%s: %s - %d Goals, %d Misses (Accuracy: %.1f%%)\n",
+                                    stats.teamName, stats.playerName, 
+                                    stats.getGoals(), stats.getMisses(), accuracy));
                         }
-                        exportFileContent.append(String.format(Locale.getDefault(),
-                                "%s: %d Goals, %d Misses (Accuracy: %.1f%%)\n",
-                                playerName, stats.getGoals(), stats.getMisses(), accuracy));
                     }
                     exportFileContent.append("---------------------------\n");
                 } else {
                     exportFileContent.append("\nNo shooting data to analyze for player percentages.\n");
                 }
+                
+                // Add Game Timeline section title
+                exportFileContent.append("\n--- Game Timeline ---\n");
+                exportFileContent.append("Team Name, Position, Action, Player Name\n");
 
                 StringBuilder sb = new StringBuilder();
                 String[] lines = gameLogContent.split("\\R");
@@ -272,7 +319,48 @@ public class Frag_Stats extends Fragment {
 
                 //sAllActions=String.valueOf(sbExportStats);
                 fos.write(exportFileContent.toString().getBytes()); // Write stats content to file
-                //Toast.makeText(getContext(), "Stats saved to Downloads folder: " + fileName, Toast.LENGTH_LONG).show();
+                
+                // Save game stats to database
+                String gameDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
+                String team1Name = viewModel.getActiveTeamName().getValue();
+                String team2Name = viewModel.getTeam2Name().getValue();
+                int team1Score = viewModel.getTeam1Score().getValue();
+                int team2Score = viewModel.getTeam2Score().getValue();
+                
+                // Create GameStats object without the log field
+                GameStats stats = new GameStats(gameDate, team1Name, team2Name, team1Score, team2Score, "");
+                
+                // Create GameAction objects for each action
+                List<GameAction> gameActions = new ArrayList<>();
+                
+                if (actionsList != null && !actionsList.isEmpty()) {
+                    for (int i = 0; i < actionsList.size(); i++) {
+                        ScoringAttempt attempt = actionsList.get(i);
+                        // Set actual team names
+                        attempt.setTeamNames(clubTeamName, oppositionTeamName);
+                        
+                        // Create a GameAction from the ScoringAttempt
+                        GameAction action = new GameAction(
+                            0, // This will be updated after GameStats is inserted
+                            attempt.getTeamName(),
+                            attempt.getPlayerPosition(),
+                            attempt.isSuccessful() ? "Goal" : "Miss",
+                            attempt.getPlayerName(),
+                            attempt.getTimestamp(),
+                            i // Sequence number
+                        );
+                        gameActions.add(action);
+                    }
+                }
+                
+                // Save both GameStats and GameActions
+                viewModel.insertGameStats(stats, gameActions);
+                
+                // Mark the game as saved to prevent further edits
+                viewModel.setGameSaved(true);
+                viewModel.setGameInProgress(false);
+                
+                Toast.makeText(getContext(), "Game saved. No further edits allowed.", Toast.LENGTH_SHORT).show();
             } else {
                 //Toast.makeText(getContext(), "Failed to open output stream.", Toast.LENGTH_SHORT).show();
             }
@@ -290,5 +378,4 @@ public class Frag_Stats extends Fragment {
             }
         }
     }
-
 }

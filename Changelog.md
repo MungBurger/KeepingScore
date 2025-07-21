@@ -1,6 +1,18 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.5] - 2023-07-20
+### Released
+- Successfully built and deployed to mobile device
+- Verified functionality across different screen sizes and orientations
+- Fixed all critical data type issues
+- Fixed Stats screen display issue where timestamps were showing as null
+- Improved user experience by showing "Player Name not recorded" instead of null values
+- Enhanced Stats screen with proper section titles and column headers
+- Reorganized data display to show Team Name, Position, Action, and Player Name in a logical order
+- Updated team name handling to use actual club and opposition team names instead of generic labels
+- Fixed syntax error in ScoringAttempt.java that was causing build failures
+- Fixed Player Shooting Stats section to correctly display team names
+- Created standalone PlayerShotStats class with proper team name support
 ### Changed
 - Updated Java version from 8 to 21 in build.gradle.kts to match the installed JDK
 - Added custom task to check for outdated dependencies

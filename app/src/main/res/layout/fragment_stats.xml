@@ -43,6 +43,14 @@
             android:layout_weight="1"
             android:text="Save this Game" />
     </LinearLayout>
+    
+    <!-- Button for Opposition Team Stats -->
+    <Button
+        android:id="@+id/btnOppositionStats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="View Stats by Opposition Team" />
 
     <!-- Optional: TextView for a Game Summary (if you decide to add one) -->
     <TextView

@@ -25,12 +25,14 @@ public class MainActivity extends AppCompatActivity implements Frag_TeamList.OnT
     public static final int TEAM_LIST_PAGE = 0;
     public static final int GAMEPLAY_PAGE = 1;
     public static final int STATS_PAGE = 2;
+    public static final int OPPOSITION_STATS_PAGE = 3;
     private MyFragmentPagerAdapter pagerAdapter;
     private TabLayout tabLayout;
     private final String[] tabTitles = new String[]{
             "Teams",
             "Gameplay",
-            "Stats"
+            "Stats",
+            "Vs Teams"
     };
 
     @Override

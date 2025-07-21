@@ -27,7 +27,8 @@ public class GameStatsAdapter extends RecyclerView.Adapter<GameStatsAdapter.View
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ScoringAttempt attempt = attempts.get(position);
-        holder.tvPlayerPosition.setText(attempt.getPlayerPosition());
+        String playerName = attempt.getPlayerName();
+        holder.tvPlayerName.setText(playerName != null && !playerName.isEmpty() ? playerName : "Player Name not recorded");
         holder.tvPlayerPosition.setText(attempt.getPlayerPosition());
         holder.tvActionType.setText(attempt.isSuccessful() ? "Goal" : "Miss");
         holder.tvTimestamp.setText(attempt.getTimestamp());

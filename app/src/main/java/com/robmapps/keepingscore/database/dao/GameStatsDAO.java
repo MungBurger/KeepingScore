@@ -14,13 +14,11 @@ import java.util.List;
 public interface GameStatsDAO {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertGameStats(GameStats stats);
-    @Query("SELECT * FROM game_stats")
-    LiveData<List<GameStats>> getAllGameStats();
-
-/*
     @Query("SELECT * FROM game_stats ORDER BY game_date DESC")
     LiveData<List<GameStats>> getAllGameStats();
-*/
+    
+    @Query("SELECT * FROM game_stats WHERE team1_name = :clubTeamName AND team2_name = :oppositionTeamName ORDER BY game_date DESC")
+    LiveData<List<GameStats>> getGamesByOppositionTeam(String clubTeamName, String oppositionTeamName);
 
     @Query("DELETE FROM game_stats WHERE id = :id")
     void deleteGameStatsById(int id);

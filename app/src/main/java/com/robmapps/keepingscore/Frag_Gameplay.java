@@ -187,22 +187,42 @@ public class Frag_Gameplay extends Fragment {
     }
     
     /**
-     * Updates button enabled states based on game progress
+     * Updates button enabled states based on game progress and saved state
      */
     private void updateButtonStates() {
         boolean gameInProgress = viewModel.getGameInProgress().getValue() == true;
+        boolean gameSaved = viewModel.getGameSaved().getValue() == true;
         
-        btnGS1.setEnabled(gameInProgress);
-        btnGA1.setEnabled(gameInProgress);
-        btnGS1M.setEnabled(gameInProgress);
-        btnGA1M.setEnabled(gameInProgress);
-        btnGS2.setEnabled(gameInProgress);
-        btnGA2.setEnabled(gameInProgress);
-        btnGS2M.setEnabled(gameInProgress);
-        btnGA2M.setEnabled(gameInProgress);
-        btnGameMode.setEnabled(!gameInProgress);
-        btnStartGame.setEnabled(!gameInProgress);
-        bTimerRunning = gameInProgress;
+        // If game is saved, disable all scoring buttons regardless of game progress
+        if (gameSaved) {
+            btnGS1.setEnabled(false);
+            btnGA1.setEnabled(false);
+            btnGS1M.setEnabled(false);
+            btnGA1M.setEnabled(false);
+            btnGS2.setEnabled(false);
+            btnGA2.setEnabled(false);
+            btnGS2M.setEnabled(false);
+            btnGA2M.setEnabled(false);
+            btnGameMode.setEnabled(false);
+            btnStartGame.setEnabled(false);
+            bTimerRunning = false;
+            
+            // Show a message if the game is saved
+            Toast.makeText(requireContext(), "Game has been saved. No further edits allowed.", Toast.LENGTH_SHORT).show();
+        } else {
+            // Normal button state based on game progress
+            btnGS1.setEnabled(gameInProgress);
+            btnGA1.setEnabled(gameInProgress);
+            btnGS1M.setEnabled(gameInProgress);
+            btnGA1M.setEnabled(gameInProgress);
+            btnGS2.setEnabled(gameInProgress);
+            btnGA2.setEnabled(gameInProgress);
+            btnGS2M.setEnabled(gameInProgress);
+            btnGA2M.setEnabled(gameInProgress);
+            btnGameMode.setEnabled(!gameInProgress);
+            btnStartGame.setEnabled(!gameInProgress);
+            bTimerRunning = gameInProgress;
+        }
     }
     
     /**
@@ -237,6 +257,14 @@ public class Frag_Gameplay extends Fragment {
         });
         viewModel.getTeam2ScoreColor().observe(getViewLifecycleOwner(), color -> {
             tvScore2.setTextColor(color);
+        });
+        
+        // Observe game saved state
+        viewModel.getGameSaved().observe(getViewLifecycleOwner(), gameSaved -> {
+            if (gameSaved) {
+                // Update button states when game is saved
+                updateButtonStates();
+            }
         });
     }
     
@@ -465,6 +493,12 @@ public class Frag_Gameplay extends Fragment {
      * @param isSuccessful Whether the scoring attempt was successful
      */
     private void incrementScore(SharedViewModel viewModel, TextView scoreView, String playerPosition, String playerName, boolean isSuccessful) {
+        // Check if game has been saved - if so, don't allow any more scoring
+        if (viewModel.getGameSaved().getValue() == true) {
+            Toast.makeText(requireContext(), "Game has been saved. No further edits allowed.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         updatePlayerLabels();
         
         if (isSuccessful) {
@@ -515,6 +549,12 @@ public class Frag_Gameplay extends Fragment {
      * Undoes the last scoring action
      */
     private void undoLastAction(SharedViewModel viewModel) {
+        // Check if game has been saved - if so, don't allow undo
+        if (viewModel.getGameSaved().getValue() == true) {
+            Toast.makeText(requireContext(), "Game has been saved. No further edits allowed.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         List<ScoringAttempt> currentActions = viewModel.getAllActions().getValue();
         if (currentActions != null && !currentActions.isEmpty()) {
             ScoringAttempt lastAction = currentActions.remove(currentActions.size() - 1);
@@ -1371,53 +1411,6 @@ public class Frag_Gameplay extends Fragment {
     }
 }
 
-class PlayerShotStats {
-    String playerName;
-    String playerPosition;
-    int goals;
-    int misses;
-
-    public PlayerShotStats(String position) {
-        this.playerName = playerName;
-        this.playerPosition = position;
-        this.goals = 0;
-        this.misses = 0;
-    }
-
-    public String playerName() {
-        return playerName;
-    }
-
-    public String playerPosition() {
-        return playerPosition;
-    }
-
-    public int getGoals() {
-        return goals;
-    }
-
-    public void incrementGoals() {
-
-        this.goals++;
-    }
-
-    public int getMisses() {
-        return misses;
-    }
-
-    public void incrementMisses() {
-        this.misses++;
-    }
-
-    @Override
-    public String toString() {
-        return "PlayerShotStats{" +
-                "Player='" + playerName + '\'' +
-                ", goals=" + goals +
-                ", misses=" + misses +
-                '}';
-    }
-}
 // TODO     Use nice pretty icons
 // TODO     Generate sub-out routines, keep track of players' in-game time; Add maybe an array to keep track
 //     of player on and off times, and sum up total in-game time, maybe just a single string with all sub events.
