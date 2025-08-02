@@ -63,22 +63,27 @@
         android:visibility="gone"
         tools:text="Game Summary Appears Here" /> <!-- Set to visible if you use it -->
 
-    <!-- Main Content Area: Choose ScrollView/TextView OR RecyclerView -->
-    <!-- Option 1: ScrollView with TextView for a single large string -->
-    <ScrollView
-        android:id="@+id/scrollViewMainContent"
+    <!-- Main Content Area with SwipeRefreshLayout -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true">
-
-        <TextView
-            android:id="@+id/tvFullGameStatsString"
+        android:layout_weight="1">
+        
+        <ScrollView
+            android:id="@+id/scrollViewMainContent"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            tools:text="" />
-    </ScrollView>
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <TextView
+                android:id="@+id/tvFullGameStatsString"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                tools:text="" />
+        </ScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>

@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,6 +52,8 @@ public class Frag_Stats extends Fragment {
     private TextView tvFullGameStatsString;
     private Button btnSaveStats, btnDeleteStats;
     private String gameStats;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private Spinner dropdown;
 
     @SuppressLint("MissingInflatedId")
     @Nullable
@@ -60,54 +63,22 @@ public class Frag_Stats extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
         btnSaveStats = view.findViewById(R.id.saveThisPage);
         Button btnOppositionStats = view.findViewById(R.id.btnOppositionStats);
+        swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
+        dropdown = view.findViewById(R.id.statsDropdown);
+        
+        // Set up swipe refresh
+        swipeRefreshLayout.setOnRefreshListener(this::refreshGameStats);
 
-        Spinner dropdown = view.findViewById(R.id.statsDropdown); // Replace with correct ID from fragment_stats.xml
-
-        viewModel.getAllGameStats().observe(getViewLifecycleOwner(), stats -> {
-            if (stats != null) {
-                // Store the game stats list for reference when an item is selected
-                final List<GameStats> gameStatsList = stats;
-                
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
-                        android.R.layout.simple_spinner_dropdown_item,
-                        stats.stream().map(game -> game.gameDate + ": " + game.team1Name + " vs " + game.team2Name)
-                                .collect(Collectors.toList()));
-                dropdown.setAdapter(adapter); // Correctly set the adapter for the Spinner
-                
-                // Set up spinner item selection listener
-                dropdown.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-                    @Override
-                    public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                        if (position >= 0 && position < gameStatsList.size()) {
-                            // Get the selected game stats
-                            GameStats selectedGame = gameStatsList.get(position);
-                            // Load game actions for this game
-                            loadGameActions(selectedGame);
-                        }
-                    }
-
-                    @Override
-                    public void onNothingSelected(android.widget.AdapterView<?> parent) {
-                        // Do nothing
-                    }
-                });
-                
-                // If there are games, select the first one by default
-                if (!stats.isEmpty()) {
-                    loadGameActions(stats.get(0));
-                }
-            }
-        });
+        // Load game statistics from database
+        loadGameStatistics();
         tvFullGameStatsString = view.findViewById(R.id.tvFullGameStatsString); // Initialize the new TextView
 
-        // Only use readGameStats for current game in progress
+        // Initialize display text
+        tvFullGameStatsString.setText("Loading game statistics...");
+        
+        // If game is in progress, show current game timeline
         if (viewModel.getGameInProgress().getValue() == Boolean.TRUE) {
-            gameStats = readGameStats("", new StringBuilder());
-            if (gameStats != null) {
-                tvFullGameStatsString.setText(gameStats.toString());
-            }
-        } else {
-            tvFullGameStatsString.setText("Select a game from the dropdown to view stats");
+            loadCurrentGameTimeline();
         }
         btnSaveStats.setOnClickListener(v -> saveGameStats());
         
@@ -121,6 +92,194 @@ public class Frag_Stats extends Fragment {
     }
 
     /**
+     * Load game statistics from database with current team matchup
+     */
+    private void loadGameStatistics() {
+        String team1Name = viewModel.getTeam1Name().getValue();
+        String team2Name = viewModel.getTeam2Name().getValue();
+        
+        if (team1Name != null && !team1Name.isEmpty() && team2Name != null && !team2Name.isEmpty()) {
+            // Load games for specific team matchup
+            viewModel.getGameStatsByTeamMatchup(team1Name, team2Name).observe(getViewLifecycleOwner(), stats -> {
+                updateGameStatsDisplay(stats);
+                swipeRefreshLayout.setRefreshing(false);
+            });
+        } else {
+            // Load all games if team names not available
+            viewModel.getAllGameStats().observe(getViewLifecycleOwner(), stats -> {
+                updateGameStatsDisplay(stats);
+                swipeRefreshLayout.setRefreshing(false);
+            });
+        }
+    }
+    
+    /**
+     * Update the game statistics display
+     */
+    private void updateGameStatsDisplay(List<GameStats> stats) {
+        if (stats != null && !stats.isEmpty()) {
+            // Store the game stats list for reference when an item is selected
+            final List<GameStats> gameStatsList = stats;
+            
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                    android.R.layout.simple_spinner_dropdown_item,
+                    stats.stream().map(game -> game.gameDate + ": " + game.team1Name + " vs " + game.team2Name + " (" + game.team1Score + "-" + game.team2Score + ")")
+                            .collect(Collectors.toList()));
+            dropdown.setAdapter(adapter);
+            
+            // Set up spinner item selection listener
+            dropdown.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                    if (position >= 0 && position < gameStatsList.size()) {
+                        GameStats selectedGame = gameStatsList.get(position);
+                        loadGameActions(selectedGame);
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                    // Do nothing
+                }
+            });
+            
+            // Load the first game by default
+            loadGameActions(stats.get(0));
+        } else {
+            tvFullGameStatsString.setText("No game statistics found for this team matchup.");
+        }
+    }
+    
+    /**
+     * Refresh game statistics
+     */
+    private void refreshGameStats() {
+        loadGameStatistics();
+        // Also refresh current game timeline if game is in progress
+        if (viewModel.getGameInProgress().getValue() == Boolean.TRUE) {
+            loadCurrentGameTimeline();
+        }
+    }
+    
+    /**
+     * Load current game timeline from database for most recent game
+     */
+    private void loadCurrentGameTimeline() {
+        // Get current game info
+        String team1Name = viewModel.getTeam1Name().getValue();
+        String team2Name = viewModel.getTeam2Name().getValue();
+        Integer team1Score = viewModel.getTeam1Score().getValue();
+        Integer team2Score = viewModel.getTeam2Score().getValue();
+        
+        StringBuilder displayText = new StringBuilder();
+        
+        // Game header
+        displayText.append(" ").append(team1Name != null ? team1Name : "Team 1")
+                  .append(" vs ").append(team2Name != null ? team2Name : "Team 2");
+        displayText.append("\n\n ").append(team1Name != null ? team1Name : "Team 1")
+                  .append(" Score: ").append(team1Score != null ? team1Score : 0);
+        displayText.append("\n ").append(team2Name != null ? team2Name : "Team 2")
+                  .append(" Score: ").append(team2Score != null ? team2Score : 0);
+        displayText.append("\n");
+        
+        // Load shooting stats from database for current game
+        viewModel.getCurrentGameShootingActions().observe(getViewLifecycleOwner(), shootingActions -> {
+            if (shootingActions != null && !shootingActions.isEmpty()) {
+                // Calculate player shooting stats from database
+                Map<String, PlayerShotStats> playerShootingStats = calculatePlayerStatsFromDB(shootingActions);
+                
+                StringBuilder statsText = new StringBuilder(displayText);
+                
+                // Display player shooting stats
+                if (!playerShootingStats.isEmpty()) {
+                    statsText.append("\n--- Player Shooting Stats (Current Game) ---\n");
+                    for (Map.Entry<String, PlayerShotStats> entry : playerShootingStats.entrySet()) {
+                        PlayerShotStats stats = entry.getValue();
+                        int totalShots = stats.getGoals() + stats.getMisses();
+                        double accuracy = 0.0;
+                        
+                        if (totalShots > 0) {
+                            accuracy = ((double) stats.getGoals() / totalShots) * 100;
+                        }
+                        statsText.append(String.format(Locale.getDefault(),
+                                "%s: %s - %d Goals, %d Misses (Accuracy: %.1f%%)\n",
+                                stats.teamName, stats.playerName, 
+                                stats.getGoals(), stats.getMisses(), accuracy));
+                    }
+                    statsText.append("---------------------------\n");
+                } else {
+                    statsText.append("\nNo shooting data for current game.\n");
+                }
+                
+                // Load timeline
+                loadTimelineForDisplay(statsText);
+            } else {
+                displayText.append("\nNo shooting data for current game.\n");
+                loadTimelineForDisplay(displayText);
+            }
+        });
+    }
+    
+    /**
+     * Load timeline and append to display text
+     */
+    private void loadTimelineForDisplay(StringBuilder displayText) {
+        viewModel.getMostRecentGameTimeline().observe(getViewLifecycleOwner(), actions -> {
+            StringBuilder finalText = new StringBuilder(displayText);
+            
+            if (actions != null && !actions.isEmpty()) {
+                // Game Timeline section
+                finalText.append("\n--- Game Timeline ---\n");
+                finalText.append("Timestamp, Team Name, Action, Position, Player Name\n");
+                
+                // Actions are already sorted by sequence from database query
+                for (GameAction action : actions) {
+                    finalText.append(String.format("%s, %s, %s, %s, %s\n", 
+                        action.timestamp,
+                        action.teamName, 
+                        action.actionType,
+                        action.playerPosition, 
+                        action.playerName));
+                }
+            } else {
+                finalText.append("\nNo timeline data for current game.\n");
+            }
+            
+            // Display the complete stats
+            tvFullGameStatsString.setText(finalText.toString());
+        });
+    }
+    
+    /**
+     * Calculate player shooting statistics from database GameAction objects
+     */
+    private Map<String, PlayerShotStats> calculatePlayerStatsFromDB(List<GameAction> actions) {
+        Map<String, PlayerShotStats> playerStats = new HashMap<>();
+        
+        for (GameAction action : actions) {
+            // Create a unique key for this player
+            String key = action.teamName + "-" + action.playerName;
+            
+            // Get or create player stats
+            PlayerShotStats stats = playerStats.get(key);
+            if (stats == null) {
+                stats = new PlayerShotStats(action.playerName);
+                stats.teamName = action.teamName;
+                playerStats.put(key, stats);
+            }
+            
+            // Update stats based on action type
+            if ("Goal".equals(action.actionType)) {
+                stats.incrementGoals();
+            } else if ("Miss".equals(action.actionType)) {
+                stats.incrementMisses();
+            }
+        }
+        
+        return playerStats;
+    }
+    
+    /**
      * Load game actions for a selected game from the database
      * @param gameStats The selected game stats
      */
@@ -130,12 +289,7 @@ public class Frag_Stats extends Fragment {
         
         // Get actions for this game from the database
         viewModel.getActionsForGame(gameStats.id).observe(getViewLifecycleOwner(), actions -> {
-            if (actions == null || actions.isEmpty()) {
-                tvFullGameStatsString.setText("No actions found for this game.");
-                return;
-            }
-            
-            // Build the game stats display
+            // Always show game header even if no actions
             StringBuilder displayText = new StringBuilder();
             
             // Game header
@@ -144,8 +298,15 @@ public class Frag_Stats extends Fragment {
             displayText.append("\n ").append(gameStats.team2Name).append(" Score: ").append(gameStats.team2Score);
             displayText.append("\n");
             
-            // Calculate player shooting stats
-            Map<String, PlayerShotStats> playerShootingStats = calculatePlayerStats(actions, gameStats.team1Name, gameStats.team2Name);
+            if (actions == null || actions.isEmpty()) {
+                displayText.append("\nNo actions found for this game.");
+                tvFullGameStatsString.setText(displayText.toString());
+                return;
+            }
+
+            
+            // Calculate player shooting stats from database actions
+            Map<String, PlayerShotStats> playerShootingStats = calculatePlayerStatsFromDB(actions);
             
             // Display player shooting stats
             if (!playerShootingStats.isEmpty()) {
@@ -170,18 +331,15 @@ public class Frag_Stats extends Fragment {
             
             // Game Timeline section
             displayText.append("\n--- Game Timeline ---\n");
-            displayText.append("Team Name, Position, Action, Player Name\n");
+            displayText.append("Timestamp, Team Name, Action, Position, Player Name\n");
             
-            // Sort actions by sequence number
-            List<GameAction> sortedActions = new ArrayList<>(actions);
-            sortedActions.sort((a1, a2) -> Integer.compare(a1.sequence, a2.sequence));
-            
-            // Add each action to the timeline
-            for (GameAction action : sortedActions) {
-                displayText.append(String.format("%s, %s, %s, %s\n", 
+            // Actions are already sorted by sequence from database query
+            for (GameAction action : actions) {
+                displayText.append(String.format("%s, %s, %s, %s, %s\n", 
+                    action.timestamp,
                     action.teamName, 
+                    action.actionType,
                     action.playerPosition, 
-                    action.actionType, 
                     action.playerName));
             }
             

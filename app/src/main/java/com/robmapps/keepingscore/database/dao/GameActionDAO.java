@@ -27,4 +27,10 @@ public interface GameActionDAO {
     
     @Query("SELECT * FROM game_actions WHERE game_id IN (:gameIds) ORDER BY game_id ASC, sequence ASC")
     LiveData<List<GameAction>> getActionsForGames(List<Integer> gameIds);
+    
+    @Query("SELECT * FROM game_actions WHERE game_id = (SELECT MAX(id) FROM game_stats) ORDER BY sequence")
+    LiveData<List<GameAction>> getMostRecentGameTimeline();
+    
+    @Query("SELECT * FROM game_actions WHERE game_id = (SELECT MAX(id) FROM game_stats) AND action_type IN ('Goal', 'Miss')")
+    LiveData<List<GameAction>> getCurrentGameShootingActions();
 }

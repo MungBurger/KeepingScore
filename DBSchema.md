@@ -18,8 +18,9 @@ Table: teams
 | Column | Type | Description |
 |--------|------|-------------|
 | id | INTEGER | Primary key, auto-increment |
-| team_name | TEXT | Name of the team |
-| players | TEXT | JSON string containing player information |
+| teamName | TEXT | Name of the team |
+| score | INTEGER | Current score of the team |
+| players | LIST<Player> | List of Player objects (converted via TypeConverter) |
 
 ### 2. Game Stats Table
 Stores summary information about games.

@@ -157,10 +157,13 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     public void insertGameStats(GameStats gameStats, List<GameAction> actions) {
         new Thread(() -> {
             // Insert game stats and get the generated ID
-            database.gameStatsDao().insertGameStats(gameStats);
+            long gameId = database.gameStatsDao().insertGameStatsAndGetId(gameStats);
             
-            // If we have actions to save, insert them with the game ID
+            // If we have actions to save, update them with the correct game ID and insert
             if (actions != null && !actions.isEmpty()) {
+                for (GameAction action : actions) {
+                    action.gameId = (int) gameId;
+                }
                 database.gameActionDao().insertGameActions(actions);
             }
         }).start(); // Save game stats asynchronously
@@ -470,6 +473,11 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
         return database.gameStatsDao().getGamesByOppositionTeam(clubTeamName, oppositionTeamName);
     }
     
+    // Get game statistics for specific team matchup
+    public LiveData<List<GameStats>> getGameStatsByTeamMatchup(String thisTeam1, String thisTeam2) {
+        return database.gameStatsDao().getGameStatsByTeamMatchup(thisTeam1, thisTeam2);
+    }
+    
     // Get actions for multiple games
     public LiveData<List<GameAction>> getActionsForGames(List<Integer> gameIds) {
         return database.gameActionDao().getActionsForGames(gameIds);
@@ -478,5 +486,15 @@ public class SharedViewModel extends AndroidViewModel { // Extend AndroidViewMod
     // Get actions for a specific game
     public LiveData<List<GameAction>> getActionsForGame(int gameId) {
         return database.gameActionDao().getActionsForGame(gameId);
+    }
+    
+    // Get timeline for most recent game
+    public LiveData<List<GameAction>> getMostRecentGameTimeline() {
+        return database.gameActionDao().getMostRecentGameTimeline();
+    }
+    
+    // Get shooting actions for current game
+    public LiveData<List<GameAction>> getCurrentGameShootingActions() {
+        return database.gameActionDao().getCurrentGameShootingActions();
     }
 }
